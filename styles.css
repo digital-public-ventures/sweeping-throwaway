@@ -223,6 +223,105 @@ body {
   background-color: #1f7acc;
 }
 
+.search-btn--full {
+  flex: 1;
+}
+
+.search-or {
+  text-align: center;
+  color: #888;
+  font-size: 0.875rem;
+  letter-spacing: 0.1em;
+  margin: 0.75rem 0;
+}
+
+.map-container {
+  /* No own width cap — inherit the 600px max-width from .main-content so the
+     map aligns with the search form and results table on every viewport. */
+  margin: 1rem 0;
+}
+
+.map {
+  width: 100%;
+  height: 50vh;
+  border: 1px solid var(--gray-medium);
+  border-radius: 2px;
+}
+
+.map-status {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: #555;
+}
+
+/* Pin overlay anchored to the visible center of the map. The SVG's bottom
+   tip is the actual location, so we offset translate by -100% on Y. */
+.center-pin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  pointer-events: none; /* let drag events reach the map below */
+  z-index: 700;         /* above tiles + markers, below Leaflet controls */
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+}
+
+/* Floating "Hide details" / "Show details" button anchored to the map's
+   top-right corner. Leaflet sets position:relative on #map so absolute
+   positioning here is relative to the map div itself. */
+.map-details-toggle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  padding: 6px 10px;
+  font: 0.75rem -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #fff;
+  border: 1px solid #999;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+
+/* SAM /xy_lookup details panel that sits below the map. Toggleable via the
+   floating button above. */
+.map-details {
+  margin: 0.5rem 0 0;
+  padding: 8px 12px;
+  background: #f6f6f6;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #333;
+}
+
+.map-geocode-form {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.map-geocode-form input {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.map-geocode-form button {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.map-details-dump {
+  margin: 0;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
 /* Search Error Message */
 .search-error {
   color: var(--status-danger);

@@ -1,0 +1,51 @@
+search_terms,expected_row_count,expected_row_labels,sprint_1_bot_pass,sprint_1_human_pass,sprint_2_bot_pass,sprint_2_human_pass,sprint_3_bot_pass,sprint_3_human_pass,sprint_4_bot_pass,sprint_4_human_pass
+Beacon St,11,all Beacon St blocks,✅,❌,❌,❌,❌,❌,❌,❌
+Beacon,11,all Beacon St blocks,✅,❌,❌,❌,❌,❌,❌,❌
+Commonwealth Ave,~19,all Commonwealth Ave blocks,✅,❌,❌,❌,❌,❌,❌,❌
+Boylston St,14,all Boylston St blocks,✅,❌,❌,❌,❌,❌,❌,❌
+7th,8,all Seventh St blocks (E/W/plain),✅,❌,❌,❌,❌,❌,❌,❌
+7th st,8,all Seventh St blocks,✅,❌,❌,❌,❌,❌,❌,❌
+W 7th St,2,West Seventh St block,✅,❌,❌,❌,❌,❌,❌,❌
+E 7th St,4,East Seventh St blocks,✅,❌,❌,❌,❌,❌,❌,❌
+West Seventh St,2,West Seventh St block,✅,❌,❌,❌,❌,❌,❌,❌
+Chelsea St,7,all Chelsea St blocks,✅,❌,❌,❌,❌,❌,❌,❌
+Cheslea St,7,Chelsea St (typo-corrected),❌,❌,❌,❌,❌,❌,❌,❌
+Mass Ave,12,all Massachusetts Ave blocks,❌,❌,❌,❌,❌,❌,❌,❌
+Comm Ave,~19,all Commonwealth Ave blocks,❌,❌,❌,❌,❌,❌,❌,❌
+N St,4,N St blocks only (no look-alikes),❌,❌,❌,❌,❌,❌,❌,❌
+E St,6,E St blocks only (no look-alikes),❌,❌,❌,❌,❌,❌,❌,❌
+Eaton St,0,no sweeping on Eaton St,✅,❌,❌,❌,❌,❌,❌,❌
+asdfqwer,0,graceful empty,✅,❌,❌,❌,❌,❌,❌,❌
+122 Commonwealth Ave,1-2,Comm Ave Arlington->Mass (E/O),✅,❌,❌,❌,❌,❌,❌,❌
+200 W 7th St,1-2,W Seventh D St->Dorchester (E/O),✅,❌,❌,❌,❌,❌,❌,❌
+100 Boylston,1-2,one Boylston St block (E/O),❌,❌,❌,❌,❌,❌,❌,❌
+1 City Hall Square,0,plaza - no sweeping,✅,❌,❌,❌,❌,❌,❌,❌
+100 Mass Ave,1-2,one Massachusetts Ave block (E/O),❌,❌,❌,❌,❌,❌,❌,❌
+100 Comm Ave,1-2,one Commonwealth Ave block (E/O),❌,❌,❌,❌,❌,❌,❌,❌
+100 Massachsetts Ave,1-2,one Mass Ave block (typo),❌,❌,❌,❌,❌,❌,❌,❌
+100 Cheslea St,1-2,one Chelsea St block (typo),❌,❌,❌,❌,❌,❌,❌,❌
+1 Saint Botolph St,1-2,St Botolph St block (E/O),❌,❌,❌,❌,❌,❌,❌,❌
+1 St Botolph St,1-2,St Botolph Harcourt->Mass (E/O),✅,❌,❌,❌,❌,❌,❌,❌
+200 Dorchester Ave,1-2,one Dorchester St block (E/O),❌,❌,❌,❌,❌,❌,❌,❌
+Beacon & Charles,3,Beacon St blocks @ Charles,✅,❌,❌,❌,❌,❌,❌,❌
+Charles & Beacon,3,Beacon St blocks @ Charles (reversed),✅,❌,❌,❌,❌,❌,❌,❌
+Beacon St & Charles St,3,Beacon St blocks @ Charles,✅,❌,❌,❌,❌,❌,❌,❌
+Beacon and Charles,3,Beacon St blocks @ Charles,✅,❌,❌,❌,❌,❌,❌,❌
+Beacon Street and Charles Street,3,Beacon St blocks @ Charles,✅,❌,❌,❌,❌,❌,❌,❌
+Mt Vernon & Charles,2,Mt Vernon St @ Charles (E/O),✅,❌,❌,❌,❌,❌,❌,❌
+Comm Ave & Mass Ave,2,Commonwealth Ave @ Mass Ave (E/O),✅,❌,❌,❌,❌,❌,❌,❌
+Boylston & Tremont,2,Boylston St @ Tremont,✅,❌,❌,❌,❌,❌,❌,❌
+Hanover & Parmenter,2,Parmenter St @ Hanover (E/O),✅,❌,❌,❌,❌,❌,❌,❌
+Cambridge & Charles,2,Cambridge St @ Charles (medians),✅,❌,❌,❌,❌,❌,❌,❌
+Beacon & Tremont,1,Beacon St @ Tremont,✅,❌,❌,❌,❌,❌,❌,❌
+Dorchester Ave & W 7th,0,no sweeping at that corner,✅,❌,❌,❌,❌,❌,❌,❌
+NotAStreet & FakeStreet,0,graceful - no match,✅,❌,❌,❌,❌,❌,❌,❌
+"[pin] 42.35178,-71.07694 (122 Commonwealth)",1-2,Comm Ave block (E/O),✅,❌,❌,❌,❌,❌,❌,❌
+"[pin] 42.33426,-71.05054 (W Seventh St)",1-2,W Seventh block (E/O),✅,❌,❌,❌,❌,❌,❌,❌
+"[pin] 42.3551,-71.0656 (Boston Common void)",fallback,void -> nearest centerline (broad),✅,❌,❌,❌,❌,❌,❌,❌
+"[pin] 42.3560,-71.0760 (Charles River void)",0,no address -> fallback (unswept),✅,❌,❌,❌,❌,❌,❌,❌
+"[pin] 42.3503,-71.0894 (Mass/Comm intersection)",1-2,one Massachusetts Ave block (E/O),❌,❌,❌,❌,❌,❌,❌,❌
+McAuliffe Bridge,0,not a sweeping street,✅,❌,❌,❌,❌,❌,❌,❌
+Tobin Bridge,0,not a sweeping street,✅,❌,❌,❌,❌,❌,❌,❌
+Storrow Drive,0,DCR road - not city-swept,✅,❌,❌,❌,❌,❌,❌,❌
+100 Dor Ave,1-2,one Dorchester Ave block,❌,❌,❌,❌,❌,❌,❌,❌

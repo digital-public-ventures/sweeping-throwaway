@@ -26,6 +26,37 @@ let pendingRemovals = new Set(); // main_ids marked for removal in edit mode
 const STORAGE_KEY = 'notifyBoston_savedStreets';
 const NOTIFY_PREFS_KEY = 'notifyBoston_notifyPrefs';
 
+// ============================================
+// SAM API — Boston Street Address Management
+// ============================================
+// One source of truth for SAM URLs. Each helper returns the parsed JSON.
+// Spec: https://api.sam.boston.gov/openapi.yaml
+
+const SAM_API = 'https://api.sam.boston.gov';
+
+async function samGeocode(address) {
+  const r = await fetch(`${SAM_API}/geocode?address=${encodeURIComponent(address)}`);
+  return r.json();
+}
+
+async function samIntersectionLookup(intersection) {
+  const r = await fetch(`${SAM_API}/intersection_lookup?intersection=${encodeURIComponent(intersection)}`);
+  return r.json();
+}
+
+async function samXyLookup(lng, lat) {
+  const r = await fetch(`${SAM_API}/xy_lookup?x=${lng}&y=${lat}`);
+  return r.json();
+}
+
+// Detect "Street A and Street B" / "Street A & Street B" queries.
+const isIntersectionQuery = (q) => /\s+(and|&)\s+/i.test(q);
+
+// Max distance (meters) from a dropped pin to its nearest SAM address for us
+// to treat it as an "exact address" worth narrowing to a single block. SAM
+// returns no address at all over parks/water; legit on-street snaps are <10m.
+const ADDRESS_SNAP_METERS = 50;
+
 // Street suffix abbreviation mappings for fuzzy search
 const SUFFIX_MAPPINGS = {
   'street': ['st', 'str'],
@@ -57,6 +88,38 @@ const SUFFIX_MAPPINGS = {
   'way': ['wy'],
   'park': ['pk'],
   'pk': ['park']
+};
+
+// Canonical-form lookup used by normalizeStreetName. Hoisted out of the
+// function body because it's iterated thousands of times during intersection
+// filtering — we don't want to rebuild the literal per call.
+//
+// Numeric ordinals (1st–9th) cover all of Boston's word-form numbered
+// streets; there's no Tenth St or higher in the sweeping CSV.
+//
+// Cardinal-direction abbreviations (w/e/n/s) make the geocode-driven path
+// match CSV entries like "W Seventh St". Caveat: South Boston has lettered
+// streets "E St" and "N St" which now lump in with "east"/"north" searches.
+const STREET_NAME_CANONICAL_MAP = {
+  'st': 'street', 'str': 'street',
+  'ave': 'avenue', 'av': 'avenue',
+  'dr': 'drive', 'drv': 'drive',
+  'rd': 'road',
+  'blvd': 'boulevard', 'boul': 'boulevard',
+  'ln': 'lane',
+  'ct': 'court', 'crt': 'court',
+  'pl': 'place', 'plc': 'place',
+  'cir': 'circle', 'circ': 'circle',
+  'ter': 'terrace', 'terr': 'terrace',
+  'hwy': 'highway',
+  'pkwy': 'parkway', 'pky': 'parkway',
+  'sq': 'square',
+  'wy': 'way',
+  'pk': 'park',
+  '1st': 'first', '2nd': 'second', '3rd': 'third',
+  '4th': 'fourth', '5th': 'fifth', '6th': 'sixth',
+  '7th': 'seventh', '8th': 'eighth', '9th': 'ninth',
+  'w': 'west', 'e': 'east', 'n': 'north', 's': 'south',
 };
 
 // ============================================
@@ -139,22 +202,234 @@ function setupEventListeners() {
   });
 
   // Search
-  document.getElementById('search-btn').addEventListener('click', performSearch);
+  // Explicit submit (button / Enter) → precise mode: numbered addresses get
+  // the geocode narrowing ladder. Debounced typing stays on instant local search.
+  document.getElementById('search-btn').addEventListener('click', () => performSearch({ precise: true }));
   document.getElementById('street-search').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') performSearch();
+    if (e.key === 'Enter') performSearch({ precise: true });
   });
 
-  // Also search on input after a short delay (debounced)
-  let searchTimeout;
+  // Two-stage debounce while typing:
+  //  - 300ms: instant broad results (local; intersections also narrow here).
+  //  - 1500ms: auto-narrow numbered addresses via the geocode ladder, so users
+  //    don't have to know to submit when results are already on screen.
+  let broadTimeout, narrowTimeout;
   document.getElementById('street-search').addEventListener('input', () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      const query = document.getElementById('street-search').value.trim();
-      if (query.length >= 2) {
-        performSearch();
-      }
-    }, 300);
+    clearTimeout(broadTimeout);
+    clearTimeout(narrowTimeout);
+    const query = document.getElementById('street-search').value.trim();
+    if (query.length < 2) return;
+    broadTimeout = setTimeout(() => performSearch(), 300);
+    // Numbered addresses are the only shape where precise mode changes the
+    // result, so only they need the auto-narrow timer.
+    if (isNumberedAddress(query)) {
+      narrowTimeout = setTimeout(() => performSearch({ precise: true }), 400);
+    }
   });
+
+  // Search-by-map toggle
+  document.getElementById('pin-btn').addEventListener('click', toggleMap);
+
+  // Debug-panel geocode bar: SAM-geocode an address and pan the map to it.
+  document.getElementById('map-geocode-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const q = document.getElementById('map-geocode-input').value.trim();
+    if (!q) return;
+    const status = document.getElementById('map-status');
+
+    // Intersection query → /intersection_lookup, otherwise /geocode. Either
+    // way this stays a pure-SAM probe (no local fallback) so it's a fair
+    // comparison to the main bar's hybrid behavior.
+    if (isIntersectionQuery(q)) {
+      status.textContent = 'Looking up intersection…';
+      try {
+        const matches = await samIntersectionLookup(q);
+        const best = matches[0];
+        if (!best) { status.textContent = `No SAM intersection match for "${q}".`; return; }
+        const ll = { lat: best.matching_intersection_y, lng: best.matching_intersection_x };
+        const canonical = best.matching_intersection_full.split(',')[0];
+        mapInstance.setView(ll, 17);
+        document.getElementById('street-search').value = canonical;
+        performSearch();
+        status.textContent = `Showing results for intersection ${canonical}.`;
+      } catch (err) {
+        status.textContent = `Intersection lookup failed: ${err.message}`;
+      }
+      return;
+    }
+
+    status.textContent = 'Geocoding…';
+    try {
+      const matches = await samGeocode(q);
+      const best = matches[0];
+      if (!best) { status.textContent = `No geocode match for "${q}".`; return; }
+      const ll = { lat: best.matching_address_y, lng: best.matching_address_x };
+      mapInstance.setView(ll, 17);
+      onPinMoved(ll);
+    } catch (err) {
+      status.textContent = `Geocode failed: ${err.message}`;
+    }
+  });
+}
+
+// ============================================
+// MAP (inline search-by-pin)
+// ============================================
+
+let mapInstance = null;
+
+function toggleMap() {
+  const container = document.getElementById('map-container');
+  const open = container.style.display !== 'none';
+  container.style.display = open ? 'none' : 'block';
+  if (!open) {
+    if (!mapInstance) initMap();
+    else setTimeout(() => mapInstance.invalidateSize(), 0);
+    // If there's an active search, pan the map to it. Runs async; we don't
+    // block the open. setView-only on purpose — calling onPinMoved would
+    // overwrite the search input with the SAM centerline name.
+    panMapToSearchInput();
+    // Bring the map to the top of the viewport so the user doesn't have to
+    // scroll manually. Explicit scrollTo (rather than scrollIntoView) because
+    // scrollIntoView has alignment quirks that left the map ~90px below the
+    // top in testing. Smooth so it doesn't feel jarring on mobile.
+    const targetY = container.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top: targetY, behavior: 'smooth' });
+  }
+}
+
+// Pan the map to whatever's currently in the search input. Dispatches to
+// SAM /intersection_lookup or /geocode based on the query shape. No-op if
+// the input is empty, the map isn't initialized, or SAM returns nothing.
+async function panMapToSearchInput() {
+  const q = document.getElementById('street-search').value.trim();
+  if (!q || !mapInstance) return;
+  try {
+    if (isIntersectionQuery(q)) {
+      const [best] = await samIntersectionLookup(q);
+      if (!best) return;
+      mapInstance.setView([best.matching_intersection_y, best.matching_intersection_x], 17);
+    } else {
+      const [best] = await samGeocode(q);
+      if (!best) return;
+      mapInstance.setView([best.matching_address_y, best.matching_address_x], 17);
+    }
+  } catch {
+    // Swallow — leave map at last view.
+  }
+}
+
+function initMap() {
+  const start = [42.3601, -71.0589]; // Boston center
+  // scrollWheelZoom off so scrolling the page past the map doesn't accidentally
+  // zoom it — users zoom with the +/- control instead.
+  mapInstance = L.map('map', { scrollWheelZoom: false }).setView(start, 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap',
+  }).addTo(mapInstance);
+
+  // Center pin: a CSS-positioned div anchored to the map frame's visual
+  // center. As the user drags the map, the geographic content moves but the
+  // pin stays put. On dragend we look up whatever lat/lng is now under it.
+  const centerPin = document.createElement('div');
+  centerPin.className = 'center-pin';
+  centerPin.innerHTML =
+    '<svg viewBox="0 0 24 36" width="24" height="36" aria-hidden="true">' +
+    '<path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12z" fill="#3388ff" stroke="#fff" stroke-width="2"/>' +
+    '<circle cx="12" cy="12" r="4" fill="#fff"/>' +
+    '</svg>';
+  document.getElementById('map').appendChild(centerPin);
+
+  // Floating "Show debug" / "Hide debug" toggle anchored to the map's
+  // top-right corner. CONTRACT: this handler must only mutate display +
+  // label + aria-pressed. It must NEVER touch the search input, the map
+  // (no setView / invalidateSize / pan), the results table, or any other
+  // app state. Showing or hiding debug is a purely cosmetic operation.
+  const detailsToggle = document.createElement('button');
+  detailsToggle.type = 'button';
+  detailsToggle.id = 'map-details-toggle';
+  detailsToggle.className = 'map-details-toggle';
+  // Default state: panel hidden. aria-pressed=true means "hide action is in
+  // effect" — i.e., panel is currently hidden.
+  detailsToggle.textContent = 'Show debug';
+  detailsToggle.setAttribute('aria-pressed', 'true');
+  detailsToggle.setAttribute('aria-controls', 'map-details');
+  detailsToggle.addEventListener('click', () => {
+    const details = document.getElementById('map-details');
+    const hidden = details.style.display === 'none';
+    details.style.display = hidden ? 'block' : 'none';
+    detailsToggle.textContent = hidden ? 'Hide debug' : 'Show debug';
+    detailsToggle.setAttribute('aria-pressed', String(!hidden));
+  });
+  document.getElementById('map').appendChild(detailsToggle);
+  // The toggle button is a child of #map, so clicks on it would bubble up to
+  // Leaflet's map.on('click') handler and pan/lookup at the button's screen
+  // position. Disable click propagation explicitly (Leaflet's own controls
+  // do the same).
+  L.DomEvent.disableClickPropagation(detailsToggle);
+
+  mapInstance.on('dragend', () => onPinMoved(mapInstance.getCenter()));
+  // Click/tap: pan the map so the tapped point lands under the screen-centered
+  // pin, then run the lookup in parallel with the pan animation.
+  mapInstance.on('click', (e) => {
+    mapInstance.panTo(e.latlng);
+    onPinMoved(e.latlng);
+  });
+  // Tiles render correctly after the container becomes visible.
+  setTimeout(() => mapInstance.invalidateSize(), 0);
+}
+
+async function onPinMoved({ lat, lng }) {
+  const status = document.getElementById('map-status');
+  status.textContent = 'Looking up street…';
+  try {
+    const data = await samXyLookup(lng, lat);
+    const street = data.nearest_centerline_street_name || data.nearest_address_street_name;
+    // Populate the details panel regardless of its current visibility — if the
+    // user has it open, they see fresh data; if collapsed, it's ready to show.
+    const inputLatLng = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    const snapLatLng =
+      data.nearest_address_y != null && data.nearest_address_x != null
+        ? `${data.nearest_address_y.toFixed(6)}, ${data.nearest_address_x.toFixed(6)}`
+        : '—';
+    const snapDistance =
+      data.nearest_address_distance_meters_from_input_xy != null
+        ? `${data.nearest_address_distance_meters_from_input_xy.toFixed(1)} m`
+        : '—';
+    document.getElementById('map-details-dump').textContent = [
+      `input lat,lng: ${inputLatLng}`,
+      `snap  lat,lng: ${snapLatLng}  (${snapDistance} away)`,
+      `address:       ${data.nearest_address_full || '—'}`,
+      `centerline:    ${data.nearest_centerline_street_name || '—'}`,
+      `intersection:  ${data.nearest_intersection_name || '—'}`,
+      `neighborhood:  ${data.mailing_neighborhood || '—'}`,
+    ].join('\n');
+    const input = document.getElementById('street-search');
+    const addrStreet = data.nearest_address_street_name;
+    const addrNum = data.nearest_address_street_number;
+    const addrDist = data.nearest_address_distance_meters_from_input_xy;
+
+    // Exact address under the pin → narrow to the block(s), same as the typed-
+    // address path. SAM returns no address (null fields) over parks/water; the
+    // distance cap guards against a far "nearest" snap. Use the ADDRESS street
+    // name, not the centerline (which can be a back alley — e.g. 122 Comm Ave).
+    if (addrStreet && addrNum && addrDist != null && addrDist < ADDRESS_SNAP_METERS) {
+      input.value = `${addrNum} ${addrStreet}`;
+      status.textContent = `Showing results for ${data.nearest_address_full}.`;
+      let blocks = narrowToBlocks(addrStreet, data.nearest_intersection_name, data.planning_neighborhood);
+      if (!blocks.length) blocks = localStreetSearch(addrStreet.toLowerCase());
+      renderMatchesOrError(blocks, `No sweeping rules found near ${data.nearest_address_full}.`);
+      return;
+    }
+
+    // No exact address → broad search on the centerline street (or nothing).
+    if (!street) { status.textContent = 'No nearby Boston street found.'; return; }
+    status.textContent = `Showing results for ${street}.`;
+    input.value = street;
+    performSearch();
+  } catch (err) {
+    status.textContent = `Lookup failed: ${err.message}`;
+  }
 }
 
 function switchTab(tabName) {
@@ -189,28 +464,43 @@ function switchTab(tabName) {
 
 // Normalize a string by expanding all abbreviations to full forms
 function normalizeStreetName(str) {
-  const words = str.toLowerCase().split(/\s+/);
-  return words.map(word => {
-    // Map abbreviations to their canonical full form
-    const canonicalMap = {
-      'st': 'street', 'str': 'street',
-      'ave': 'avenue', 'av': 'avenue',
-      'dr': 'drive', 'drv': 'drive',
-      'rd': 'road',
-      'blvd': 'boulevard', 'boul': 'boulevard',
-      'ln': 'lane',
-      'ct': 'court', 'crt': 'court',
-      'pl': 'place', 'plc': 'place',
-      'cir': 'circle', 'circ': 'circle',
-      'ter': 'terrace', 'terr': 'terrace',
-      'hwy': 'highway',
-      'pkwy': 'parkway', 'pky': 'parkway',
-      'sq': 'square',
-      'wy': 'way',
-      'pk': 'park'
-    };
-    return canonicalMap[word] || word;
-  }).join(' ');
+  return str
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => STREET_NAME_CANONICAL_MAP[word] || word)
+    .join(' ');
+}
+
+// Canonical street-type words (the full forms STREET_NAME_CANONICAL_MAP
+// produces). Used to allow a bare name ("Beacon") to match a typed name
+// ("Beacon St") without letting look-alikes collide.
+const STREET_TYPE_WORDS = new Set([
+  'street', 'avenue', 'road', 'place', 'drive', 'boulevard', 'lane',
+  'court', 'circle', 'terrace', 'highway', 'parkway', 'square', 'way', 'park',
+]);
+
+function stripTrailingType(normalized) {
+  const words = normalized.split(' ');
+  if (words.length > 1 && STREET_TYPE_WORDS.has(words[words.length - 1])) {
+    return words.slice(0, -1).join(' ');
+  }
+  return normalized;
+}
+
+// Whole-name match for street names. Normalized equality, allowing a trailing
+// street-type word to be dropped from ONE side only:
+//   "Beacon" ↔ "Beacon St"            ✓ (drop type from one side)
+//   "Beacon St" ↔ "Beacon Ave"        ✗ (never strip type from both)
+//   "Charles St" ↔ "Charles Street South" ✗ ("south" is not a type word)
+//   "Charles St" ↔ "Charlesgate East" ✗
+// This replaces the loose substring .includes() matching that over-matched
+// look-alike street names.
+function streetNamesMatch(a, b) {
+  const na = normalizeStreetName(a || '');
+  const nb = normalizeStreetName(b || '');
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  return stripTrailingType(na) === nb || na === stripTrailingType(nb);
 }
 
 function expandSearchQuery(query) {
@@ -246,12 +536,19 @@ function cleanSearchQuery(query) {
   return cleaned;
 }
 
-function performSearch() {
-  let query = document.getElementById('street-search').value.trim().toLowerCase();
+// A numbered address: leading digits + a street fragment ("122 Commonwealth").
+const isNumberedAddress = (q) => /^\d+\s+\S/.test(q);
+
+// `precise` (true only on explicit submit — button / Enter) gates the
+// network-backed numbered-address path so we don't geocode mid-type. The
+// 300ms debounce while typing calls performSearch() with no options.
+function performSearch(options = {}) {
+  const { precise = false } = options;
+  const raw = document.getElementById('street-search').value.trim();
+  const query = raw.toLowerCase();
   const resultsContainer = document.getElementById('search-results');
   const searchError = document.getElementById('search-error');
 
-  // Hide previous error
   searchError.style.display = 'none';
 
   if (!query) {
@@ -260,44 +557,215 @@ function performSearch() {
     return;
   }
 
-  // Clean the query: strip leading numbers and periods
-  query = cleanSearchQuery(query);
-
-  // Expand query with suffix alternatives for fuzzy matching
-  const searchTerms = expandSearchQuery(query);
-
-  const matches = streetData.filter(street => {
-    const streetName = street.st_name.toLowerCase();
-    const normalizedStreetName = normalizeStreetName(street.st_name);
-
-    // Check if any search term matches either the original or normalized street name
-    return searchTerms.some(term =>
-      streetName.includes(term) || normalizedStreetName.includes(term)
-    );
-  });
-
-  if (matches.length === 0) {
-    resultsContainer.innerHTML = '';
-    searchError.textContent = 'No matches found. Only streets with street sweeping or current permitted work will return results. Try a different name or check the spelling.';
-    searchError.style.display = 'block';
-    hideNotificationFooter();
+  // Intersection query → SAM-first / local-fallback pipeline.
+  if (isIntersectionQuery(raw)) {
+    performIntersectionSearch(raw);
     return;
   }
 
-  // Sort by street name, then by segment (from/to), then by side
-  matches.sort((a, b) => {
+  // Numbered address (explicit submit only) → geocode + narrowing ladder.
+  if (precise && isNumberedAddress(raw)) {
+    performAddressSearch(raw);
+    return;
+  }
+
+  // Plain street name → local substring match (browse mode; partial typing).
+  renderMatchesOrError(
+    localStreetSearch(query),
+    'No matches found. Only streets with street sweeping or current permitted work will return results. Try a different name or check the spelling.'
+  );
+}
+
+// Local substring search over the CSV. Strips a leading house number and
+// expands abbreviations, then matches against raw or normalized st_name.
+// Shared by the plain-name path and as a fallback for the address path.
+function localStreetSearch(queryLower) {
+  const query = cleanSearchQuery(queryLower);
+  const searchTerms = expandSearchQuery(query);
+  return streetData.filter((street) => {
+    const streetName = street.st_name.toLowerCase();
+    const normalizedStreetName = normalizeStreetName(street.st_name);
+    return searchTerms.some(
+      (term) => streetName.includes(term) || normalizedStreetName.includes(term)
+    );
+  });
+}
+
+// Block sort: street name, then segment (from/to), then side.
+function sortBlocks(matches) {
+  return matches.sort((a, b) => {
     const nameCompare = a.st_name.localeCompare(b.st_name);
     if (nameCompare !== 0) return nameCompare;
     const fromCompare = (a.from || '').localeCompare(b.from || '');
     if (fromCompare !== 0) return fromCompare;
     return (a.side || '').localeCompare(b.side || '');
   });
+}
 
-  // Store results for pagination
+// Render matches into the results table, or show an error if empty. Shared by
+// all three search paths so they stay consistent.
+function renderMatchesOrError(matches, emptyMessage) {
+  const resultsContainer = document.getElementById('search-results');
+  const searchError = document.getElementById('search-error');
+  if (!matches.length) {
+    resultsContainer.innerHTML = '';
+    searchError.textContent = emptyMessage;
+    searchError.style.display = 'block';
+    hideNotificationFooter();
+    return;
+  }
+  searchError.style.display = 'none';
+  sortBlocks(matches);
   currentSearchResults = matches;
   currentPage = 1;
-
   renderSearchResults();
+}
+
+// Intersection search: SAM canonicalizes the user query, then we filter the
+// CSV for sweeping rows on either side of that corner. Falls back to a pure-
+// local split-and-filter if SAM returns nothing (catches Boston idioms like
+// "Mt Vernon" that SAM over-normalizes to "Mount Vernon").
+async function performIntersectionSearch(rawQuery) {
+  let matches = [];
+
+  // 1. SAM /intersection_lookup — gets canonical names like "Beacon St &
+  //    Charles St" out of "Beacon & Charles".
+  try {
+    const data = await samIntersectionLookup(rawQuery);
+    if (data.length) {
+      const intrName = data[0].matching_intersection_full.split(',')[0];
+      matches = filterByIntersection(intrName);
+    }
+  } catch {
+    // Swallow — we'll fall through to local. Worst case: no results.
+  }
+
+  // 2. Local fallback for inputs SAM over-normalizes (e.g. "Mt Vernon" →
+  //    "Mount Vernon" doesn't match CSV's "Mt Vernon St").
+  if (!matches.length) {
+    matches = filterByIntersection(rawQuery);
+  }
+
+  renderMatchesOrError(
+    matches,
+    `No sweeping rules found for the intersection "${rawQuery}". Try the full street names.`
+  );
+}
+
+// Numbered-address search: geocode, then narrow to the block(s) governing the
+// address via a graceful ladder (cross-street → neighborhood → whole street).
+// We always return BOTH sides of each matched block — never parity-filter.
+// Falls back to local substring search if geocoding/narrowing finds nothing.
+// See temp/plans/search-narrowing-two-phase.md (Phase 1).
+async function performAddressSearch(rawQuery) {
+  let matches = [];
+  try {
+    const geo = await samGeocode(rawQuery);
+    if (geo.length) {
+      const topScore = geo[0].match_score;
+      const topMatches = geo.filter((m) => m.match_score === topScore && topScore > 0);
+      const blockSets = await Promise.all(topMatches.map(narrowAddressMatch));
+      // Union across tied top matches, dedupe by main_id.
+      const byId = new Map();
+      for (const set of blockSets) {
+        for (const row of set) byId.set(row.main_id, row);
+      }
+      matches = [...byId.values()];
+    }
+  } catch {
+    // Swallow — fall through to local.
+  }
+
+  if (!matches.length) {
+    matches = localStreetSearch(rawQuery.toLowerCase());
+  }
+
+  // Staleness guard: this path is fired automatically by the auto-narrow
+  // debounce, so the user may have kept typing while we awaited the network.
+  // Bail rather than render results for a query they've moved past.
+  if (document.getElementById('street-search').value.trim() !== rawQuery) return;
+
+  renderMatchesOrError(matches, `No sweeping rules found for "${rawQuery}".`);
+}
+
+// Narrow a street location to the CSV block(s) that govern it. Returns every
+// row for the matched block(s) — both even and odd sides (no parity filter).
+// `nearestIntersectionName` and `neighborhood` are optional narrowing signals;
+// each is applied only if it leaves ≥1 row (graceful degradation). Pure — no
+// network — so both the geocode path and the map-pin path can share it.
+function narrowToBlocks(streetName, nearestIntersectionName, neighborhood) {
+  const base = streetData.filter((row) => streetNamesMatch(row.st_name, streetName));
+  // A block is one distinct from→to pair; if the street is a single block,
+  // there's nothing to narrow.
+  const distinctBlocks = new Set(base.map((row) => `${row.from}|${row.to}`));
+  if (distinctBlocks.size <= 1) return base;
+
+  // a. Cross-street narrowing via the nearest intersection. Skipped if it
+  //    empties the set (handles the alley-centerline case where the nearest
+  //    intersection isn't a CSV block endpoint — e.g. 122 Commonwealth Ave).
+  if (nearestIntersectionName) {
+    const crossStreets = nearestIntersectionName
+      .split(/\s*&\s*/)
+      .filter((s) => !streetNamesMatch(s, streetName));
+    const touching = base.filter((row) =>
+      crossStreets.some(
+        (cs) => streetNamesMatch(row.from, cs) || streetNamesMatch(row.to, cs)
+      )
+    );
+    if (touching.length) return touching;
+  }
+
+  // b. Neighborhood narrowing (planning_neighborhood ↔ dist_name). Skipped if
+  //    it empties the set (names don't always align: Dorchester N/S, etc.).
+  if (neighborhood) {
+    const n = neighborhood.toLowerCase();
+    const inNbhd = base.filter((row) => (row.dist_name || '').toLowerCase() === n);
+    if (inNbhd.length) return inNbhd;
+  }
+
+  // c. Whole street, both sides (still better than the pre-fix ~20 rows when
+  //    neither cross-street nor neighborhood narrowing applied).
+  return base;
+}
+
+// Geocode-match variant: fetches the nearest intersection for the match's
+// point, then delegates to narrowToBlocks. Skips the network when the street
+// is a single block (nothing to narrow).
+async function narrowAddressMatch(match) {
+  const base = streetData.filter((row) => streetNamesMatch(row.st_name, match.street_name));
+  const distinctBlocks = new Set(base.map((row) => `${row.from}|${row.to}`));
+  if (distinctBlocks.size <= 1) return base;
+
+  let intersectionName = null;
+  try {
+    const xy = await samXyLookup(match.matching_address_x, match.matching_address_y);
+    intersectionName = xy.nearest_intersection_name || null;
+  } catch {
+    // ignore — narrowToBlocks falls back to neighborhood / whole-street
+  }
+  return narrowToBlocks(match.street_name, intersectionName, match.planning_neighborhood);
+}
+
+// Given an intersection-shaped string like "Beacon St & Charles St" or
+// "Beacon and Charles", return CSV rows whose st_name matches one side of
+// the intersection AND whose from/to contains the other.
+function filterByIntersection(intrString) {
+  const parts = intrString.split(/\s+(?:and|&)\s+/i);
+  if (parts.length !== 2) return [];
+  const a = parts[0].trim();
+  const b = parts[1].trim();
+  // A block terminates at the corner when its st_name is one cross-street AND
+  // its from/to is the other. Whole-name matching (not substring) so "Charles
+  // St" doesn't pull in "Charles Street South" / "Charlesgate East".
+  return streetData.filter((row) => {
+    const matchesA = streetNamesMatch(row.st_name, a);
+    const matchesB = streetNamesMatch(row.st_name, b);
+    const fromA = streetNamesMatch(row.from, a);
+    const fromB = streetNamesMatch(row.from, b);
+    const toA = streetNamesMatch(row.to, a);
+    const toB = streetNamesMatch(row.to, b);
+    return (matchesA && (fromB || toB)) || (matchesB && (fromA || toA));
+  });
 }
 
 function renderSearchResults() {
@@ -446,7 +914,7 @@ function handleAlertCheckboxChange(e) {
     pendingSelections.delete(mainId);
   }
 
-  updateNotificationFooter();
+  showNotificationFooter();
 }
 
 function setupNotificationFooter() {
@@ -459,7 +927,7 @@ function setupNotificationFooter() {
     document.querySelectorAll('.alert-checkbox').forEach(cb => {
       cb.checked = false;
     });
-    updateNotificationFooter();
+    showNotificationFooter();
   });
 
   saveBtn.addEventListener('click', () => {
@@ -469,6 +937,11 @@ function setupNotificationFooter() {
 }
 
 function showNotificationFooter() {
+  // Only surface the footer once the user has actually selected something.
+  if (pendingSelections.size === 0) {
+    hideNotificationFooter();
+    return;
+  }
   const footer = document.getElementById('notify-footer');
   const mainContent = document.querySelector('.main-content');
   footer.style.display = 'block';
@@ -686,35 +1159,6 @@ function formatSideText(side) {
 // SAVED STREETS / DASHBOARD
 // ============================================
 
-function saveStreet(mainId) {
-  const street = streetData.find(s => s.main_id === mainId);
-  if (!street) return;
-
-  // Check if already saved
-  if (savedStreets.some(s => s.main_id === mainId)) {
-    return;
-  }
-
-  savedStreets.push(street);
-  saveSavedStreets();
-  updateAlertBadge();
-
-  // Update the button in search results
-  const btn = document.querySelector(`.save-btn[data-id="${mainId}"]`);
-  if (btn) {
-    btn.textContent = 'Saved';
-    btn.classList.add('saved');
-    btn.disabled = true;
-  }
-}
-
-function removeStreet(mainId) {
-  savedStreets = savedStreets.filter(s => s.main_id !== mainId);
-  saveSavedStreets();
-  updateAlertBadge();
-  renderSavedStreets();
-}
-
 function renderSavedStreets() {
   const container = document.getElementById('saved-streets');
 
@@ -892,73 +1336,6 @@ function updateAlertBadge() {
 // ============================================
 // STREET CARD RENDERING
 // ============================================
-
-function renderStreetCard(street, isDashboard) {
-  const schedule = formatSchedule(street);
-  const isSaved = savedStreets.some(s => s.main_id === street.main_id);
-
-  let statusHtml = '';
-  let statusClass = '';
-
-  if (isDashboard) {
-    const status = calculateStatus(street);
-    statusClass = `status-${status.level}-card`;
-    statusHtml = `
-      <div class="status-indicator ${status.level}">
-        <span class="status-icon">${status.icon}</span>
-        <div class="status-text">
-          <p class="status-label">${status.label}</p>
-          <p class="status-detail">${status.detail}</p>
-        </div>
-      </div>
-    `;
-  }
-
-  const segmentText = street.from && street.to
-    ? `From ${street.from} to ${street.to}`
-    : street.from
-    ? `From ${street.from}`
-    : street.to
-    ? `To ${street.to}`
-    : '';
-
-  const sideText = formatSideText(street.side);
-
-  // Show alert preferences for dashboard cards
-  let alertPrefsHtml = '';
-  if (isDashboard) {
-    const alerts = [];
-    if (street.alertSweeping !== false) alerts.push('Sweeping');
-    if (alerts.length > 0) {
-      alertPrefsHtml = `<span class="alert-prefs">Alerts: ${alerts.join(', ')}</span>`;
-    }
-  }
-
-  return `
-    <div class="street-card ${isDashboard ? 'dashboard-card ' + statusClass : ''}">
-      ${statusHtml}
-      <div class="street-card-header">
-        <div>
-          <h3 class="street-name">${escapeHtml(street.st_name)}</h3>
-          <p class="street-neighborhood">${escapeHtml(street.dist_name || '')}</p>
-        </div>
-      </div>
-      ${segmentText ? `<p class="street-segment">${escapeHtml(segmentText)}</p>` : ''}
-      ${sideText ? `<span class="street-side">${escapeHtml(sideText)}</span>` : ''}
-      ${alertPrefsHtml}
-      <div class="street-schedule">
-        <span class="schedule-label">Sweeping Schedule</span>
-        ${escapeHtml(schedule)}
-      </div>
-      <div class="card-actions">
-        ${isDashboard
-          ? `<button class="remove-btn" data-id="${street.main_id}">Remove</button>`
-          : `<button class="save-btn ${isSaved ? 'saved' : ''}" data-id="${street.main_id}" ${isSaved ? 'disabled' : ''}>${isSaved ? 'Saved' : 'Save'}</button>`
-        }
-      </div>
-    </div>
-  `;
-}
 
 // ============================================
 // SCHEDULE FORMATTING
