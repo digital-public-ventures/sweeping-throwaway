@@ -23,8 +23,8 @@ let pendingSelections = new Map(); // mainId -> { sweeping: bool }
 let editModeEnabled = false;
 let pendingRemovals = new Set(); // main_ids marked for removal in edit mode
 
-const STORAGE_KEY = 'notifyBoston_savedStreets';
-const NOTIFY_PREFS_KEY = 'notifyBoston_notifyPrefs';
+const STORAGE_KEY = "notifyBoston_savedStreets";
+const NOTIFY_PREFS_KEY = "notifyBoston_notifyPrefs";
 
 // ============================================
 // SAM API — Boston Street Address Management
@@ -32,15 +32,19 @@ const NOTIFY_PREFS_KEY = 'notifyBoston_notifyPrefs';
 // One source of truth for SAM URLs. Each helper returns the parsed JSON.
 // Spec: https://api.sam.boston.gov/openapi.yaml
 
-const SAM_API = 'https://api.sam.boston.gov';
+const SAM_API = "https://api.sam.boston.gov";
 
 async function samGeocode(address) {
-  const r = await fetch(`${SAM_API}/geocode?address=${encodeURIComponent(address)}`);
+  const r = await fetch(
+    `${SAM_API}/geocode?address=${encodeURIComponent(address)}`,
+  );
   return r.json();
 }
 
 async function samIntersectionLookup(intersection) {
-  const r = await fetch(`${SAM_API}/intersection_lookup?intersection=${encodeURIComponent(intersection)}`);
+  const r = await fetch(
+    `${SAM_API}/intersection_lookup?intersection=${encodeURIComponent(intersection)}`,
+  );
   return r.json();
 }
 
@@ -59,35 +63,35 @@ const ADDRESS_SNAP_METERS = 50;
 
 // Street suffix abbreviation mappings for fuzzy search
 const SUFFIX_MAPPINGS = {
-  'street': ['st', 'str'],
-  'st': ['street', 'str'],
-  'avenue': ['ave', 'av'],
-  'ave': ['avenue', 'av'],
-  'drive': ['dr', 'drv'],
-  'dr': ['drive', 'drv'],
-  'road': ['rd'],
-  'rd': ['road'],
-  'boulevard': ['blvd', 'boul'],
-  'blvd': ['boulevard', 'boul'],
-  'lane': ['ln'],
-  'ln': ['lane'],
-  'court': ['ct', 'crt'],
-  'ct': ['court', 'crt'],
-  'place': ['pl', 'plc'],
-  'pl': ['place', 'plc'],
-  'circle': ['cir', 'circ'],
-  'cir': ['circle', 'circ'],
-  'terrace': ['ter', 'terr'],
-  'ter': ['terrace', 'terr'],
-  'highway': ['hwy'],
-  'hwy': ['highway'],
-  'parkway': ['pkwy', 'pky'],
-  'pkwy': ['parkway', 'pky'],
-  'square': ['sq'],
-  'sq': ['square'],
-  'way': ['wy'],
-  'park': ['pk'],
-  'pk': ['park']
+  street: ["st", "str"],
+  st: ["street", "str"],
+  avenue: ["ave", "av"],
+  ave: ["avenue", "av"],
+  drive: ["dr", "drv"],
+  dr: ["drive", "drv"],
+  road: ["rd"],
+  rd: ["road"],
+  boulevard: ["blvd", "boul"],
+  blvd: ["boulevard", "boul"],
+  lane: ["ln"],
+  ln: ["lane"],
+  court: ["ct", "crt"],
+  ct: ["court", "crt"],
+  place: ["pl", "plc"],
+  pl: ["place", "plc"],
+  circle: ["cir", "circ"],
+  cir: ["circle", "circ"],
+  terrace: ["ter", "terr"],
+  ter: ["terrace", "terr"],
+  highway: ["hwy"],
+  hwy: ["highway"],
+  parkway: ["pkwy", "pky"],
+  pkwy: ["parkway", "pky"],
+  square: ["sq"],
+  sq: ["square"],
+  way: ["wy"],
+  park: ["pk"],
+  pk: ["park"],
 };
 
 // Canonical-form lookup used by normalizeStreetName. Hoisted out of the
@@ -101,32 +105,50 @@ const SUFFIX_MAPPINGS = {
 // match CSV entries like "W Seventh St". Caveat: South Boston has lettered
 // streets "E St" and "N St" which now lump in with "east"/"north" searches.
 const STREET_NAME_CANONICAL_MAP = {
-  'st': 'street', 'str': 'street',
-  'ave': 'avenue', 'av': 'avenue',
-  'dr': 'drive', 'drv': 'drive',
-  'rd': 'road',
-  'blvd': 'boulevard', 'boul': 'boulevard',
-  'ln': 'lane',
-  'ct': 'court', 'crt': 'court',
-  'pl': 'place', 'plc': 'place',
-  'cir': 'circle', 'circ': 'circle',
-  'ter': 'terrace', 'terr': 'terrace',
-  'hwy': 'highway',
-  'pkwy': 'parkway', 'pky': 'parkway',
-  'sq': 'square',
-  'wy': 'way',
-  'pk': 'park',
-  '1st': 'first', '2nd': 'second', '3rd': 'third',
-  '4th': 'fourth', '5th': 'fifth', '6th': 'sixth',
-  '7th': 'seventh', '8th': 'eighth', '9th': 'ninth',
-  'w': 'west', 'e': 'east', 'n': 'north', 's': 'south',
+  st: "street",
+  str: "street",
+  ave: "avenue",
+  av: "avenue",
+  dr: "drive",
+  drv: "drive",
+  rd: "road",
+  blvd: "boulevard",
+  boul: "boulevard",
+  ln: "lane",
+  ct: "court",
+  crt: "court",
+  pl: "place",
+  plc: "place",
+  cir: "circle",
+  circ: "circle",
+  ter: "terrace",
+  terr: "terrace",
+  hwy: "highway",
+  pkwy: "parkway",
+  pky: "parkway",
+  sq: "square",
+  wy: "way",
+  pk: "park",
+  "1st": "first",
+  "2nd": "second",
+  "3rd": "third",
+  "4th": "fourth",
+  "5th": "fifth",
+  "6th": "sixth",
+  "7th": "seventh",
+  "8th": "eighth",
+  "9th": "ninth",
+  w: "west",
+  e: "east",
+  n: "north",
+  s: "south",
 };
 
 // ============================================
 // INITIALIZATION
 // ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   loadSavedStreets();
   loadNotificationPrefs();
   loadStreetData();
@@ -137,22 +159,23 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadStreetData() {
-  const resultsContainer = document.getElementById('search-results');
+  const resultsContainer = document.getElementById("search-results");
   resultsContainer.innerHTML = '<p class="loading">Loading street data</p>';
 
-  Papa.parse('street-sweeping.csv', {
+  Papa.parse("street-sweeping.csv", {
     download: true,
     header: true,
     skipEmptyLines: true,
     complete: (results) => {
-      streetData = results.data.filter(row => row.main_id && row.st_name);
-      resultsContainer.innerHTML = '';
+      streetData = results.data.filter((row) => row.main_id && row.st_name);
+      resultsContainer.innerHTML = "";
       console.log(`Loaded ${streetData.length} street segments`);
     },
     error: (error) => {
-      resultsContainer.innerHTML = '<p class="results-placeholder">Error loading street data. Please refresh the page.</p>';
-      console.error('Error loading CSV:', error);
-    }
+      resultsContainer.innerHTML =
+        '<p class="results-placeholder">Error loading street data. Please refresh the page.</p>';
+      console.error("Error loading CSV:", error);
+    },
   });
 }
 
@@ -161,7 +184,7 @@ function loadSavedStreets() {
     const stored = localStorage.getItem(STORAGE_KEY);
     savedStreets = stored ? JSON.parse(stored) : [];
   } catch (e) {
-    console.error('Error loading saved streets:', e);
+    console.error("Error loading saved streets:", e);
     savedStreets = [];
   }
 }
@@ -170,14 +193,16 @@ function saveSavedStreets() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(savedStreets));
   } catch (e) {
-    console.error('Error saving streets:', e);
+    console.error("Error saving streets:", e);
   }
 }
 
 function loadNotificationPrefs() {
   try {
     const stored = localStorage.getItem(NOTIFY_PREFS_KEY);
-    return stored ? JSON.parse(stored) : { email: true, text: false, push: false };
+    return stored
+      ? JSON.parse(stored)
+      : { email: true, text: false, push: false };
   } catch (e) {
     return { email: true, text: false, push: false };
   }
@@ -187,7 +212,7 @@ function saveNotificationPrefs(prefs) {
   try {
     localStorage.setItem(NOTIFY_PREFS_KEY, JSON.stringify(prefs));
   } catch (e) {
-    console.error('Error saving notification prefs:', e);
+    console.error("Error saving notification prefs:", e);
   }
 }
 
@@ -197,16 +222,18 @@ function saveNotificationPrefs(prefs) {
 
 function setupEventListeners() {
   // Tab navigation
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
   });
 
   // Search
   // Explicit submit (button / Enter) → precise mode: numbered addresses get
   // the geocode narrowing ladder. Debounced typing stays on instant local search.
-  document.getElementById('search-btn').addEventListener('click', () => performSearch({ precise: true }));
-  document.getElementById('street-search').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') performSearch({ precise: true });
+  document
+    .getElementById("search-btn")
+    .addEventListener("click", () => performSearch({ precise: true }));
+  document.getElementById("street-search").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") performSearch({ precise: true });
   });
 
   // Two-stage debounce while typing:
@@ -214,10 +241,10 @@ function setupEventListeners() {
   //  - 1500ms: auto-narrow numbered addresses via the geocode ladder, so users
   //    don't have to know to submit when results are already on screen.
   let broadTimeout, narrowTimeout;
-  document.getElementById('street-search').addEventListener('input', () => {
+  document.getElementById("street-search").addEventListener("input", () => {
     clearTimeout(broadTimeout);
     clearTimeout(narrowTimeout);
-    const query = document.getElementById('street-search').value.trim();
+    const query = document.getElementById("street-search").value.trim();
     if (query.length < 2) return;
     broadTimeout = setTimeout(() => performSearch(), 300);
     // Numbered addresses are the only shape where precise mode changes the
@@ -228,48 +255,62 @@ function setupEventListeners() {
   });
 
   // Search-by-map toggle
-  document.getElementById('pin-btn').addEventListener('click', toggleMap);
+  document.getElementById("pin-btn").addEventListener("click", toggleMap);
 
   // Debug-panel geocode bar: SAM-geocode an address and pan the map to it.
-  document.getElementById('map-geocode-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const q = document.getElementById('map-geocode-input').value.trim();
-    if (!q) return;
-    const status = document.getElementById('map-status');
+  document
+    .getElementById("map-geocode-form")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const q = document.getElementById("map-geocode-input").value.trim();
+      if (!q) return;
+      const status = document.getElementById("map-status");
 
-    // Intersection query → /intersection_lookup, otherwise /geocode. Either
-    // way this stays a pure-SAM probe (no local fallback) so it's a fair
-    // comparison to the main bar's hybrid behavior.
-    if (isIntersectionQuery(q)) {
-      status.textContent = 'Looking up intersection…';
-      try {
-        const matches = await samIntersectionLookup(q);
-        const best = matches[0];
-        if (!best) { status.textContent = `No SAM intersection match for "${q}".`; return; }
-        const ll = { lat: best.matching_intersection_y, lng: best.matching_intersection_x };
-        const canonical = best.matching_intersection_full.split(',')[0];
-        mapInstance.setView(ll, 17);
-        document.getElementById('street-search').value = canonical;
-        performSearch();
-        status.textContent = `Showing results for intersection ${canonical}.`;
-      } catch (err) {
-        status.textContent = `Intersection lookup failed: ${err.message}`;
+      // Intersection query → /intersection_lookup, otherwise /geocode. Either
+      // way this stays a pure-SAM probe (no local fallback) so it's a fair
+      // comparison to the main bar's hybrid behavior.
+      if (isIntersectionQuery(q)) {
+        status.textContent = "Looking up intersection…";
+        try {
+          const matches = await samIntersectionLookup(q);
+          const best = matches[0];
+          if (!best) {
+            status.textContent = `No SAM intersection match for "${q}".`;
+            return;
+          }
+          const ll = {
+            lat: best.matching_intersection_y,
+            lng: best.matching_intersection_x,
+          };
+          const canonical = best.matching_intersection_full.split(",")[0];
+          mapInstance.setView(ll, 17);
+          document.getElementById("street-search").value = canonical;
+          performSearch();
+          status.textContent = `Showing results for intersection ${canonical}.`;
+        } catch (err) {
+          status.textContent = `Intersection lookup failed: ${err.message}`;
+        }
+        return;
       }
-      return;
-    }
 
-    status.textContent = 'Geocoding…';
-    try {
-      const matches = await samGeocode(q);
-      const best = matches[0];
-      if (!best) { status.textContent = `No geocode match for "${q}".`; return; }
-      const ll = { lat: best.matching_address_y, lng: best.matching_address_x };
-      mapInstance.setView(ll, 17);
-      onPinMoved(ll);
-    } catch (err) {
-      status.textContent = `Geocode failed: ${err.message}`;
-    }
-  });
+      status.textContent = "Geocoding…";
+      try {
+        const matches = await samGeocode(q);
+        const best = matches[0];
+        if (!best) {
+          status.textContent = `No geocode match for "${q}".`;
+          return;
+        }
+        const ll = {
+          lat: best.matching_address_y,
+          lng: best.matching_address_x,
+        };
+        mapInstance.setView(ll, 17);
+        onPinMoved(ll);
+      } catch (err) {
+        status.textContent = `Geocode failed: ${err.message}`;
+      }
+    });
 }
 
 // ============================================
@@ -279,9 +320,9 @@ function setupEventListeners() {
 let mapInstance = null;
 
 function toggleMap() {
-  const container = document.getElementById('map-container');
-  const open = container.style.display !== 'none';
-  container.style.display = open ? 'none' : 'block';
+  const container = document.getElementById("map-container");
+  const open = container.style.display !== "none";
+  container.style.display = open ? "none" : "block";
   if (!open) {
     if (!mapInstance) initMap();
     else setTimeout(() => mapInstance.invalidateSize(), 0);
@@ -294,7 +335,7 @@ function toggleMap() {
     // scrollIntoView has alignment quirks that left the map ~90px below the
     // top in testing. Smooth so it doesn't feel jarring on mobile.
     const targetY = container.getBoundingClientRect().top + window.scrollY;
-    window.scrollTo({ top: targetY, behavior: 'smooth' });
+    window.scrollTo({ top: targetY, behavior: "smooth" });
   }
 }
 
@@ -302,17 +343,23 @@ function toggleMap() {
 // SAM /intersection_lookup or /geocode based on the query shape. No-op if
 // the input is empty, the map isn't initialized, or SAM returns nothing.
 async function panMapToSearchInput() {
-  const q = document.getElementById('street-search').value.trim();
+  const q = document.getElementById("street-search").value.trim();
   if (!q || !mapInstance) return;
   try {
     if (isIntersectionQuery(q)) {
       const [best] = await samIntersectionLookup(q);
       if (!best) return;
-      mapInstance.setView([best.matching_intersection_y, best.matching_intersection_x], 17);
+      mapInstance.setView(
+        [best.matching_intersection_y, best.matching_intersection_x],
+        17,
+      );
     } else {
       const [best] = await samGeocode(q);
       if (!best) return;
-      mapInstance.setView([best.matching_address_y, best.matching_address_x], 17);
+      mapInstance.setView(
+        [best.matching_address_y, best.matching_address_x],
+        17,
+      );
     }
   } catch {
     // Swallow — leave map at last view.
@@ -323,55 +370,55 @@ function initMap() {
   const start = [42.3601, -71.0589]; // Boston center
   // scrollWheelZoom off so scrolling the page past the map doesn't accidentally
   // zoom it — users zoom with the +/- control instead.
-  mapInstance = L.map('map', { scrollWheelZoom: false }).setView(start, 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap',
+  mapInstance = L.map("map", { scrollWheelZoom: false }).setView(start, 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap",
   }).addTo(mapInstance);
 
   // Center pin: a CSS-positioned div anchored to the map frame's visual
   // center. As the user drags the map, the geographic content moves but the
   // pin stays put. On dragend we look up whatever lat/lng is now under it.
-  const centerPin = document.createElement('div');
-  centerPin.className = 'center-pin';
+  const centerPin = document.createElement("div");
+  centerPin.className = "center-pin";
   centerPin.innerHTML =
     '<svg viewBox="0 0 24 36" width="24" height="36" aria-hidden="true">' +
     '<path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12z" fill="#3388ff" stroke="#fff" stroke-width="2"/>' +
     '<circle cx="12" cy="12" r="4" fill="#fff"/>' +
-    '</svg>';
-  document.getElementById('map').appendChild(centerPin);
+    "</svg>";
+  document.getElementById("map").appendChild(centerPin);
 
   // Floating "Show debug" / "Hide debug" toggle anchored to the map's
   // top-right corner. CONTRACT: this handler must only mutate display +
   // label + aria-pressed. It must NEVER touch the search input, the map
   // (no setView / invalidateSize / pan), the results table, or any other
   // app state. Showing or hiding debug is a purely cosmetic operation.
-  const detailsToggle = document.createElement('button');
-  detailsToggle.type = 'button';
-  detailsToggle.id = 'map-details-toggle';
-  detailsToggle.className = 'map-details-toggle';
+  const detailsToggle = document.createElement("button");
+  detailsToggle.type = "button";
+  detailsToggle.id = "map-details-toggle";
+  detailsToggle.className = "map-details-toggle";
   // Default state: panel hidden. aria-pressed=true means "hide action is in
   // effect" — i.e., panel is currently hidden.
-  detailsToggle.textContent = 'Show debug';
-  detailsToggle.setAttribute('aria-pressed', 'true');
-  detailsToggle.setAttribute('aria-controls', 'map-details');
-  detailsToggle.addEventListener('click', () => {
-    const details = document.getElementById('map-details');
-    const hidden = details.style.display === 'none';
-    details.style.display = hidden ? 'block' : 'none';
-    detailsToggle.textContent = hidden ? 'Hide debug' : 'Show debug';
-    detailsToggle.setAttribute('aria-pressed', String(!hidden));
+  detailsToggle.textContent = "Show debug";
+  detailsToggle.setAttribute("aria-pressed", "true");
+  detailsToggle.setAttribute("aria-controls", "map-details");
+  detailsToggle.addEventListener("click", () => {
+    const details = document.getElementById("map-details");
+    const hidden = details.style.display === "none";
+    details.style.display = hidden ? "block" : "none";
+    detailsToggle.textContent = hidden ? "Hide debug" : "Show debug";
+    detailsToggle.setAttribute("aria-pressed", String(!hidden));
   });
-  document.getElementById('map').appendChild(detailsToggle);
+  document.getElementById("map").appendChild(detailsToggle);
   // The toggle button is a child of #map, so clicks on it would bubble up to
   // Leaflet's map.on('click') handler and pan/lookup at the button's screen
   // position. Disable click propagation explicitly (Leaflet's own controls
   // do the same).
   L.DomEvent.disableClickPropagation(detailsToggle);
 
-  mapInstance.on('dragend', () => onPinMoved(mapInstance.getCenter()));
+  mapInstance.on("dragend", () => onPinMoved(mapInstance.getCenter()));
   // Click/tap: pan the map so the tapped point lands under the screen-centered
   // pin, then run the lookup in parallel with the pan animation.
-  mapInstance.on('click', (e) => {
+  mapInstance.on("click", (e) => {
     mapInstance.panTo(e.latlng);
     onPinMoved(e.latlng);
   });
@@ -380,31 +427,32 @@ function initMap() {
 }
 
 async function onPinMoved({ lat, lng }) {
-  const status = document.getElementById('map-status');
-  status.textContent = 'Looking up street…';
+  const status = document.getElementById("map-status");
+  status.textContent = "Looking up street…";
   try {
     const data = await samXyLookup(lng, lat);
-    const street = data.nearest_centerline_street_name || data.nearest_address_street_name;
+    const street =
+      data.nearest_centerline_street_name || data.nearest_address_street_name;
     // Populate the details panel regardless of its current visibility — if the
     // user has it open, they see fresh data; if collapsed, it's ready to show.
     const inputLatLng = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     const snapLatLng =
       data.nearest_address_y != null && data.nearest_address_x != null
         ? `${data.nearest_address_y.toFixed(6)}, ${data.nearest_address_x.toFixed(6)}`
-        : '—';
+        : "—";
     const snapDistance =
       data.nearest_address_distance_meters_from_input_xy != null
         ? `${data.nearest_address_distance_meters_from_input_xy.toFixed(1)} m`
-        : '—';
-    document.getElementById('map-details-dump').textContent = [
+        : "—";
+    document.getElementById("map-details-dump").textContent = [
       `input lat,lng: ${inputLatLng}`,
       `snap  lat,lng: ${snapLatLng}  (${snapDistance} away)`,
-      `address:       ${data.nearest_address_full || '—'}`,
-      `centerline:    ${data.nearest_centerline_street_name || '—'}`,
-      `intersection:  ${data.nearest_intersection_name || '—'}`,
-      `neighborhood:  ${data.mailing_neighborhood || '—'}`,
-    ].join('\n');
-    const input = document.getElementById('street-search');
+      `address:       ${data.nearest_address_full || "—"}`,
+      `centerline:    ${data.nearest_centerline_street_name || "—"}`,
+      `intersection:  ${data.nearest_intersection_name || "—"}`,
+      `neighborhood:  ${data.mailing_neighborhood || "—"}`,
+    ].join("\n");
+    const input = document.getElementById("street-search");
     const addrStreet = data.nearest_address_street_name;
     const addrNum = data.nearest_address_street_number;
     const addrDist = data.nearest_address_distance_meters_from_input_xy;
@@ -413,17 +461,32 @@ async function onPinMoved({ lat, lng }) {
     // address path. SAM returns no address (null fields) over parks/water; the
     // distance cap guards against a far "nearest" snap. Use the ADDRESS street
     // name, not the centerline (which can be a back alley — e.g. 122 Comm Ave).
-    if (addrStreet && addrNum && addrDist != null && addrDist < ADDRESS_SNAP_METERS) {
+    if (
+      addrStreet &&
+      addrNum &&
+      addrDist != null &&
+      addrDist < ADDRESS_SNAP_METERS
+    ) {
       input.value = `${addrNum} ${addrStreet}`;
       status.textContent = `Showing results for ${data.nearest_address_full}.`;
-      let blocks = narrowToBlocks(addrStreet, data.nearest_intersection_name, data.planning_neighborhood);
+      let blocks = narrowToBlocks(
+        addrStreet,
+        data.nearest_intersection_name,
+        data.planning_neighborhood,
+      );
       if (!blocks.length) blocks = localStreetSearch(addrStreet.toLowerCase());
-      renderMatchesOrError(blocks, `No sweeping rules found near ${data.nearest_address_full}.`);
+      renderMatchesOrError(
+        blocks,
+        `No sweeping rules found near ${data.nearest_address_full}.`,
+      );
       return;
     }
 
     // No exact address → broad search on the centerline street (or nothing).
-    if (!street) { status.textContent = 'No nearby Boston street found.'; return; }
+    if (!street) {
+      status.textContent = "No nearby Boston street found.";
+      return;
+    }
     status.textContent = `Showing results for ${street}.`;
     input.value = street;
     performSearch();
@@ -434,23 +497,23 @@ async function onPinMoved({ lat, lng }) {
 
 function switchTab(tabName) {
   // Update tab buttons
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === tabName);
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === tabName);
   });
 
   // Update tab content
-  document.querySelectorAll('.tab-content').forEach(content => {
-    content.classList.remove('active');
+  document.querySelectorAll(".tab-content").forEach((content) => {
+    content.classList.remove("active");
   });
 
-  if (tabName === 'search') {
-    document.getElementById('search-tab').classList.add('active');
+  if (tabName === "search") {
+    document.getElementById("search-tab").classList.add("active");
     // Show footer if there are search results
     if (currentSearchResults.length > 0) {
       showNotificationFooter();
     }
-  } else if (tabName === 'my-streets') {
-    document.getElementById('my-streets-tab').classList.add('active');
+  } else if (tabName === "my-streets") {
+    document.getElementById("my-streets-tab").classList.add("active");
     editModeEnabled = false;
     pendingRemovals = new Set();
     hideNotificationFooter();
@@ -468,21 +531,34 @@ function normalizeStreetName(str) {
     .toLowerCase()
     .split(/\s+/)
     .map((word) => STREET_NAME_CANONICAL_MAP[word] || word)
-    .join(' ');
+    .join(" ");
 }
 
 // Canonical street-type words (the full forms STREET_NAME_CANONICAL_MAP
 // produces). Used to allow a bare name ("Beacon") to match a typed name
 // ("Beacon St") without letting look-alikes collide.
 const STREET_TYPE_WORDS = new Set([
-  'street', 'avenue', 'road', 'place', 'drive', 'boulevard', 'lane',
-  'court', 'circle', 'terrace', 'highway', 'parkway', 'square', 'way', 'park',
+  "street",
+  "avenue",
+  "road",
+  "place",
+  "drive",
+  "boulevard",
+  "lane",
+  "court",
+  "circle",
+  "terrace",
+  "highway",
+  "parkway",
+  "square",
+  "way",
+  "park",
 ]);
 
 function stripTrailingType(normalized) {
-  const words = normalized.split(' ');
+  const words = normalized.split(" ");
   if (words.length > 1 && STREET_TYPE_WORDS.has(words[words.length - 1])) {
-    return words.slice(0, -1).join(' ');
+    return words.slice(0, -1).join(" ");
   }
   return normalized;
 }
@@ -496,8 +572,8 @@ function stripTrailingType(normalized) {
 // This replaces the loose substring .includes() matching that over-matched
 // look-alike street names.
 function streetNamesMatch(a, b) {
-  const na = normalizeStreetName(a || '');
-  const nb = normalizeStreetName(b || '');
+  const na = normalizeStreetName(a || "");
+  const nb = normalizeStreetName(b || "");
   if (!na || !nb) return false;
   if (na === nb) return true;
   return stripTrailingType(na) === nb || na === stripTrailingType(nb);
@@ -515,12 +591,12 @@ function expandSearchQuery(query) {
   words.forEach((word, index) => {
     const lowerWord = word.toLowerCase();
     if (SUFFIX_MAPPINGS[lowerWord]) {
-      SUFFIX_MAPPINGS[lowerWord].forEach(alt => {
+      SUFFIX_MAPPINGS[lowerWord].forEach((alt) => {
         const newWords = [...words];
         newWords[index] = alt;
-        alternatives.add(newWords.join(' '));
+        alternatives.add(newWords.join(" "));
         // Also add normalized version of this variation
-        alternatives.add(normalizeStreetName(newWords.join(' ')));
+        alternatives.add(normalizeStreetName(newWords.join(" ")));
       });
     }
   });
@@ -530,9 +606,9 @@ function expandSearchQuery(query) {
 
 function cleanSearchQuery(query) {
   // Strip leading numbers (e.g., "200 Boylston St" -> "Boylston St")
-  let cleaned = query.replace(/^\d+\s+/, '');
+  let cleaned = query.replace(/^\d+\s+/, "");
   // Strip periods (e.g., "St." -> "St")
-  cleaned = cleaned.replace(/\./g, '');
+  cleaned = cleaned.replace(/\./g, "");
   return cleaned;
 }
 
@@ -544,15 +620,15 @@ const isNumberedAddress = (q) => /^\d+\s+\S/.test(q);
 // 300ms debounce while typing calls performSearch() with no options.
 function performSearch(options = {}) {
   const { precise = false } = options;
-  const raw = document.getElementById('street-search').value.trim();
+  const raw = document.getElementById("street-search").value.trim();
   const query = raw.toLowerCase();
-  const resultsContainer = document.getElementById('search-results');
-  const searchError = document.getElementById('search-error');
+  const resultsContainer = document.getElementById("search-results");
+  const searchError = document.getElementById("search-error");
 
-  searchError.style.display = 'none';
+  searchError.style.display = "none";
 
   if (!query) {
-    resultsContainer.innerHTML = '';
+    resultsContainer.innerHTML = "";
     hideNotificationFooter();
     return;
   }
@@ -563,17 +639,32 @@ function performSearch(options = {}) {
     return;
   }
 
-  // Numbered address (explicit submit only) → geocode + narrowing ladder.
-  if (precise && isNumberedAddress(raw)) {
-    performAddressSearch(raw);
+  // Numbered address → geocode + narrowing ladder. Precise (explicit submit or
+  // the auto-narrow debounce) runs the network path. The broad typing pass
+  // shows a pending state instead of flashing the full street list: that count
+  // is misleading for a specific address and would otherwise linger on screen
+  // until the async narrow (a few seconds of intersection lookups) replaces it.
+  if (isNumberedAddress(raw)) {
+    if (precise) performAddressSearch(raw);
+    else showSearchPending(raw);
     return;
   }
 
   // Plain street name → local substring match (browse mode; partial typing).
   renderMatchesOrError(
     localStreetSearch(query),
-    'No matches found. Only streets with street sweeping or current permitted work will return results. Try a different name or check the spelling.'
+    "No matches found. Only streets with street sweeping or current permitted work will return results. Try a different name or check the spelling.",
   );
+}
+
+// Pending placeholder for the numbered-address path. The narrowed answer needs
+// the network, so while it resolves we show a loading line rather than the full
+// (misleading) street list. Replaced by renderMatchesOrError when results land.
+function showSearchPending(query) {
+  document.getElementById("search-error").style.display = "none";
+  document.getElementById("search-results").innerHTML =
+    `<p class="loading">Finding sweeping routes for "${escapeHtml(query)}"</p>`;
+  hideNotificationFooter();
 }
 
 // Local substring search over the CSV. Strips a leading house number and
@@ -586,7 +677,8 @@ function localStreetSearch(queryLower) {
     const streetName = street.st_name.toLowerCase();
     const normalizedStreetName = normalizeStreetName(street.st_name);
     return searchTerms.some(
-      (term) => streetName.includes(term) || normalizedStreetName.includes(term)
+      (term) =>
+        streetName.includes(term) || normalizedStreetName.includes(term),
     );
   });
 }
@@ -596,25 +688,25 @@ function sortBlocks(matches) {
   return matches.sort((a, b) => {
     const nameCompare = a.st_name.localeCompare(b.st_name);
     if (nameCompare !== 0) return nameCompare;
-    const fromCompare = (a.from || '').localeCompare(b.from || '');
+    const fromCompare = (a.from || "").localeCompare(b.from || "");
     if (fromCompare !== 0) return fromCompare;
-    return (a.side || '').localeCompare(b.side || '');
+    return (a.side || "").localeCompare(b.side || "");
   });
 }
 
 // Render matches into the results table, or show an error if empty. Shared by
 // all three search paths so they stay consistent.
 function renderMatchesOrError(matches, emptyMessage) {
-  const resultsContainer = document.getElementById('search-results');
-  const searchError = document.getElementById('search-error');
+  const resultsContainer = document.getElementById("search-results");
+  const searchError = document.getElementById("search-error");
   if (!matches.length) {
-    resultsContainer.innerHTML = '';
+    resultsContainer.innerHTML = "";
     searchError.textContent = emptyMessage;
-    searchError.style.display = 'block';
+    searchError.style.display = "block";
     hideNotificationFooter();
     return;
   }
-  searchError.style.display = 'none';
+  searchError.style.display = "none";
   sortBlocks(matches);
   currentSearchResults = matches;
   currentPage = 1;
@@ -633,7 +725,7 @@ async function performIntersectionSearch(rawQuery) {
   try {
     const data = await samIntersectionLookup(rawQuery);
     if (data.length) {
-      const intrName = data[0].matching_intersection_full.split(',')[0];
+      const intrName = data[0].matching_intersection_full.split(",")[0];
       matches = filterByIntersection(intrName);
     }
   } catch {
@@ -648,7 +740,7 @@ async function performIntersectionSearch(rawQuery) {
 
   renderMatchesOrError(
     matches,
-    `No sweeping rules found for the intersection "${rawQuery}". Try the full street names.`
+    `No sweeping rules found for the intersection "${rawQuery}". Try the full street names.`,
   );
 }
 
@@ -658,12 +750,17 @@ async function performIntersectionSearch(rawQuery) {
 // Falls back to local substring search if geocoding/narrowing finds nothing.
 // See temp/plans/search-narrowing-two-phase.md (Phase 1).
 async function performAddressSearch(rawQuery) {
+  // Show the pending line up front so an explicit submit doesn't sit on stale
+  // results during the network narrow (the broad typing pass already shows it).
+  showSearchPending(rawQuery);
   let matches = [];
   try {
     const geo = await samGeocode(rawQuery);
     if (geo.length) {
       const topScore = geo[0].match_score;
-      const topMatches = geo.filter((m) => m.match_score === topScore && topScore > 0);
+      const topMatches = geo.filter(
+        (m) => m.match_score === topScore && topScore > 0,
+      );
       const blockSets = await Promise.all(topMatches.map(narrowAddressMatch));
       // Union across tied top matches, dedupe by main_id.
       const byId = new Map();
@@ -683,7 +780,8 @@ async function performAddressSearch(rawQuery) {
   // Staleness guard: this path is fired automatically by the auto-narrow
   // debounce, so the user may have kept typing while we awaited the network.
   // Bail rather than render results for a query they've moved past.
-  if (document.getElementById('street-search').value.trim() !== rawQuery) return;
+  if (document.getElementById("street-search").value.trim() !== rawQuery)
+    return;
 
   renderMatchesOrError(matches, `No sweeping rules found for "${rawQuery}".`);
 }
@@ -694,7 +792,9 @@ async function performAddressSearch(rawQuery) {
 // each is applied only if it leaves ≥1 row (graceful degradation). Pure — no
 // network — so both the geocode path and the map-pin path can share it.
 function narrowToBlocks(streetName, nearestIntersectionName, neighborhood) {
-  const base = streetData.filter((row) => streetNamesMatch(row.st_name, streetName));
+  const base = streetData.filter((row) =>
+    streetNamesMatch(row.st_name, streetName),
+  );
   // A block is one distinct from→to pair; if the street is a single block,
   // there's nothing to narrow.
   const distinctBlocks = new Set(base.map((row) => `${row.from}|${row.to}`));
@@ -709,8 +809,8 @@ function narrowToBlocks(streetName, nearestIntersectionName, neighborhood) {
       .filter((s) => !streetNamesMatch(s, streetName));
     const touching = base.filter((row) =>
       crossStreets.some(
-        (cs) => streetNamesMatch(row.from, cs) || streetNamesMatch(row.to, cs)
-      )
+        (cs) => streetNamesMatch(row.from, cs) || streetNamesMatch(row.to, cs),
+      ),
     );
     if (touching.length) return touching;
   }
@@ -726,8 +826,8 @@ function narrowToBlocks(streetName, nearestIntersectionName, neighborhood) {
   if (neighborhood) {
     const n = neighborhood.toLowerCase().trim();
     const inNbhd = base.filter((row) => {
-      const d = (row.dist_name || '').toLowerCase().trim();
-      if (!d || d === 'multiple') return false;
+      const d = (row.dist_name || "").toLowerCase().trim();
+      if (!d || d === "multiple") return false;
       return d === n || d.includes(n) || n.includes(d);
     });
     if (inNbhd.length) return inNbhd;
@@ -762,7 +862,11 @@ async function resolveIntersectionPoint(street, cross) {
   let pt = null;
   try {
     const r = await samIntersectionLookup(`${street} and ${cross}`);
-    if (r.length) pt = { lat: r[0].matching_intersection_y, lng: r[0].matching_intersection_x };
+    if (r.length)
+      pt = {
+        lat: r[0].matching_intersection_y,
+        lng: r[0].matching_intersection_x,
+      };
   } catch {
     // leave null — caller treats unresolved cross streets as "can't place"
   }
@@ -774,7 +878,8 @@ async function resolveIntersectionPoint(street, cross) {
 function distanceFeet(a, b) {
   const FT_PER_DEG_LAT = 364567;
   const dLat = (b.lat - a.lat) * FT_PER_DEG_LAT;
-  const dLng = (b.lng - a.lng) * FT_PER_DEG_LAT * Math.cos((a.lat * Math.PI) / 180);
+  const dLng =
+    (b.lng - a.lng) * FT_PER_DEG_LAT * Math.cos((a.lat * Math.PI) / 180);
   return Math.hypot(dLat, dLng);
 }
 
@@ -782,14 +887,19 @@ function distanceFeet(a, b) {
 // streets can't be placed (caller then falls back to the ladder). Always both
 // sides — collects every row sharing the chosen block's from/to.
 async function narrowByCrossStreetProximity(streetName, base, point) {
-  const crosses = [...new Set(base.flatMap((r) => [r.from, r.to]).filter(Boolean))]
-    .filter((c) => !/dead end/i.test(c));
+  const crosses = [
+    ...new Set(base.flatMap((r) => [r.from, r.to]).filter(Boolean)),
+  ].filter((c) => !/dead end/i.test(c));
   const resolved = await Promise.all(
-    crosses.map(async (name) => ({ name, pt: await resolveIntersectionPoint(streetName, name) }))
+    crosses.map(async (name) => ({
+      name,
+      pt: await resolveIntersectionPoint(streetName, name),
+    })),
   );
 
   const dist = new Map();
-  for (const { name, pt } of resolved) if (pt) dist.set(name, distanceFeet(point, pt));
+  for (const { name, pt } of resolved)
+    if (pt) dist.set(name, distanceFeet(point, pt));
   if (dist.size < 2) return null;
 
   // Nearest cross street to the address.
@@ -799,10 +909,12 @@ async function narrowByCrossStreetProximity(streetName, base, point) {
   // Among distinct blocks touching the nearest cross street, rank by how close
   // their OTHER endpoint is — the block whose far corner is nearest brackets
   // the address most tightly.
-  const distinct = [...new Set(base.map((r) => `${r.from}|${r.to}`))].map((s) => {
-    const [from, to] = s.split('|');
-    return { from, to };
-  });
+  const distinct = [...new Set(base.map((r) => `${r.from}|${r.to}`))].map(
+    (s) => {
+      const [from, to] = s.split("|");
+      return { from, to };
+    },
+  );
   const candidates = distinct
     .map((blk) => {
       const onFrom = streetNamesMatch(blk.from, nearest);
@@ -820,10 +932,12 @@ async function narrowByCrossStreetProximity(streetName, base, point) {
   // adjacent blocks nearly equidistant (e.g. 1950 Commonwealth at Chestnut Hill
   // Ave). Return both rather than guess.
   const nearestOther = candidates[0].otherDist;
-  const chosen = candidates.filter((c) => c.otherDist - nearestOther <= CROSS_STREET_TIE_FEET);
+  const chosen = candidates.filter(
+    (c) => c.otherDist - nearestOther <= CROSS_STREET_TIE_FEET,
+  );
 
   return base.filter((row) =>
-    chosen.some((c) => row.from === c.blk.from && row.to === c.blk.to)
+    chosen.some((c) => row.from === c.blk.from && row.to === c.blk.to),
   );
 }
 
@@ -831,15 +945,24 @@ async function narrowByCrossStreetProximity(streetName, base, point) {
 // falls back to the nearest-intersection / neighborhood / whole-street ladder.
 // Skips the network when the street is a single block (nothing to narrow).
 async function narrowAddressMatch(match) {
-  const base = streetData.filter((row) => streetNamesMatch(row.st_name, match.street_name));
+  const base = streetData.filter((row) =>
+    streetNamesMatch(row.st_name, match.street_name),
+  );
   const distinctBlocks = new Set(base.map((row) => `${row.from}|${row.to}`));
   if (distinctBlocks.size <= 1) return base;
 
-  const point = { lat: match.matching_address_y, lng: match.matching_address_x };
+  const point = {
+    lat: match.matching_address_y,
+    lng: match.matching_address_x,
+  };
 
   // Rung 1: cross-street proximity (tightest; no centerline needed).
   try {
-    const byProximity = await narrowByCrossStreetProximity(match.street_name, base, point);
+    const byProximity = await narrowByCrossStreetProximity(
+      match.street_name,
+      base,
+      point,
+    );
     if (byProximity?.length) return byProximity;
   } catch {
     // fall through to the ladder
@@ -848,12 +971,19 @@ async function narrowAddressMatch(match) {
   // Rung 2+: nearest-intersection (xy_lookup) → neighborhood → whole street.
   let intersectionName = null;
   try {
-    const xy = await samXyLookup(match.matching_address_x, match.matching_address_y);
+    const xy = await samXyLookup(
+      match.matching_address_x,
+      match.matching_address_y,
+    );
     intersectionName = xy.nearest_intersection_name || null;
   } catch {
     // ignore — narrowToBlocks falls back to neighborhood / whole-street
   }
-  return narrowToBlocks(match.street_name, intersectionName, match.planning_neighborhood);
+  return narrowToBlocks(
+    match.street_name,
+    intersectionName,
+    match.planning_neighborhood,
+  );
 }
 
 // Given an intersection-shaped string like "Beacon St & Charles St" or
@@ -879,14 +1009,14 @@ function filterByIntersection(intrString) {
 }
 
 function renderSearchResults() {
-  const resultsContainer = document.getElementById('search-results');
+  const resultsContainer = document.getElementById("search-results");
   const totalResults = currentSearchResults.length;
   const totalPages = Math.ceil(totalResults / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalResults);
   const pageResults = currentSearchResults.slice(startIndex, endIndex);
 
-  let html = `<p class="results-count">${totalResults} result${totalResults === 1 ? '' : 's'} found</p>`;
+  let html = `<p class="results-count">${totalResults} result${totalResults === 1 ? "" : "s"} found</p>`;
 
   // Render as table
   html += renderResultsTable(pageResults);
@@ -897,8 +1027,8 @@ function renderSearchResults() {
   resultsContainer.innerHTML = html;
 
   // Add event listeners to alert checkboxes
-  resultsContainer.querySelectorAll('.alert-checkbox').forEach(checkbox => {
-    checkbox.addEventListener('change', handleAlertCheckboxChange);
+  resultsContainer.querySelectorAll(".alert-checkbox").forEach((checkbox) => {
+    checkbox.addEventListener("change", handleAlertCheckboxChange);
   });
 
   // Add pagination event listeners
@@ -919,10 +1049,10 @@ function renderPagination(totalResults, totalPages) {
         <div class="page-size-selector">
           <label>Show:</label>
           <select id="page-size-select">
-            <option value="10" ${pageSize === 10 ? 'selected' : ''}>10</option>
-            <option value="20" ${pageSize === 20 ? 'selected' : ''}>20</option>
-            <option value="50" ${pageSize === 50 ? 'selected' : ''}>50</option>
-            <option value="100" ${pageSize === 100 ? 'selected' : ''}>100</option>
+            <option value="10" ${pageSize === 10 ? "selected" : ""}>10</option>
+            <option value="20" ${pageSize === 20 ? "selected" : ""}>20</option>
+            <option value="50" ${pageSize === 50 ? "selected" : ""}>50</option>
+            <option value="100" ${pageSize === 100 ? "selected" : ""}>100</option>
           </select>
           per page
         </div>
@@ -939,7 +1069,7 @@ function renderPagination(totalResults, totalPages) {
         Showing ${startIndex}-${endIndex} of ${totalResults} results
       </div>
       <div class="pagination-controls">
-        <button class="pagination-btn" id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>Prev</button>
+        <button class="pagination-btn" id="prev-page" ${currentPage === 1 ? "disabled" : ""}>Prev</button>
   `;
 
   // Show page numbers (max 5 visible)
@@ -951,19 +1081,19 @@ function renderPagination(totalResults, totalPages) {
   }
 
   for (let i = startPage; i <= endPage; i++) {
-    paginationHtml += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+    paginationHtml += `<button class="pagination-btn ${i === currentPage ? "active" : ""}" data-page="${i}">${i}</button>`;
   }
 
   paginationHtml += `
-        <button class="pagination-btn" id="next-page" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+        <button class="pagination-btn" id="next-page" ${currentPage === totalPages ? "disabled" : ""}>Next</button>
       </div>
       <div class="page-size-selector">
         <label>Show:</label>
         <select id="page-size-select">
-          <option value="10" ${pageSize === 10 ? 'selected' : ''}>10</option>
-          <option value="20" ${pageSize === 20 ? 'selected' : ''}>20</option>
-          <option value="50" ${pageSize === 50 ? 'selected' : ''}>50</option>
-          <option value="100" ${pageSize === 100 ? 'selected' : ''}>100</option>
+          <option value="10" ${pageSize === 10 ? "selected" : ""}>10</option>
+          <option value="20" ${pageSize === 20 ? "selected" : ""}>20</option>
+          <option value="50" ${pageSize === 50 ? "selected" : ""}>50</option>
+          <option value="100" ${pageSize === 100 ? "selected" : ""}>100</option>
         </select>
         per page
       </div>
@@ -974,12 +1104,12 @@ function renderPagination(totalResults, totalPages) {
 }
 
 function setupPaginationListeners() {
-  const prevBtn = document.getElementById('prev-page');
-  const nextBtn = document.getElementById('next-page');
-  const pageSizeSelect = document.getElementById('page-size-select');
+  const prevBtn = document.getElementById("prev-page");
+  const nextBtn = document.getElementById("next-page");
+  const pageSizeSelect = document.getElementById("page-size-select");
 
   if (prevBtn) {
-    prevBtn.addEventListener('click', () => {
+    prevBtn.addEventListener("click", () => {
       if (currentPage > 1) {
         currentPage--;
         renderSearchResults();
@@ -988,7 +1118,7 @@ function setupPaginationListeners() {
   }
 
   if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
+    nextBtn.addEventListener("click", () => {
       const totalPages = Math.ceil(currentSearchResults.length / pageSize);
       if (currentPage < totalPages) {
         currentPage++;
@@ -997,15 +1127,15 @@ function setupPaginationListeners() {
     });
   }
 
-  document.querySelectorAll('.pagination-btn[data-page]').forEach(btn => {
-    btn.addEventListener('click', () => {
+  document.querySelectorAll(".pagination-btn[data-page]").forEach((btn) => {
+    btn.addEventListener("click", () => {
       currentPage = parseInt(btn.dataset.page);
       renderSearchResults();
     });
   });
 
   if (pageSizeSelect) {
-    pageSizeSelect.addEventListener('change', (e) => {
+    pageSizeSelect.addEventListener("change", (e) => {
       pageSize = parseInt(e.target.value);
       currentPage = 1;
       renderSearchResults();
@@ -1028,19 +1158,19 @@ function handleAlertCheckboxChange(e) {
 }
 
 function setupNotificationFooter() {
-  const clearBtn = document.getElementById('notify-clear');
-  const saveBtn = document.getElementById('notify-save-btn');
+  const clearBtn = document.getElementById("notify-clear");
+  const saveBtn = document.getElementById("notify-save-btn");
 
-  clearBtn.addEventListener('click', () => {
+  clearBtn.addEventListener("click", () => {
     pendingSelections.clear();
     // Uncheck all checkboxes on current page
-    document.querySelectorAll('.alert-checkbox').forEach(cb => {
+    document.querySelectorAll(".alert-checkbox").forEach((cb) => {
       cb.checked = false;
     });
     showNotificationFooter();
   });
 
-  saveBtn.addEventListener('click', () => {
+  saveBtn.addEventListener("click", () => {
     if (pendingSelections.size === 0) return;
     showSignupModal();
   });
@@ -1052,39 +1182,39 @@ function showNotificationFooter() {
     hideNotificationFooter();
     return;
   }
-  const footer = document.getElementById('notify-footer');
-  const mainContent = document.querySelector('.main-content');
-  footer.style.display = 'block';
-  mainContent.classList.add('has-footer');
+  const footer = document.getElementById("notify-footer");
+  const mainContent = document.querySelector(".main-content");
+  footer.style.display = "block";
+  mainContent.classList.add("has-footer");
   updateNotificationFooter();
 }
 
 function updateNotificationFooter() {
-  const footer = document.getElementById('notify-footer');
-  const countEl = document.getElementById('notify-count');
-  const hintEl = document.getElementById('notify-hint');
-  const clearBtn = document.getElementById('notify-clear');
+  const footer = document.getElementById("notify-footer");
+  const countEl = document.getElementById("notify-count");
+  const hintEl = document.getElementById("notify-hint");
+  const clearBtn = document.getElementById("notify-clear");
 
   // Only update counts/hint if footer is visible
-  if (footer.style.display === 'none') return;
+  if (footer.style.display === "none") return;
 
   const totalSelections = pendingSelections.size;
   countEl.textContent = totalSelections;
 
   if (totalSelections > 0) {
-    hintEl.style.display = 'none';
-    clearBtn.style.display = 'inline';
+    hintEl.style.display = "none";
+    clearBtn.style.display = "inline";
   } else {
-    hintEl.style.display = 'inline';
-    clearBtn.style.display = 'none';
+    hintEl.style.display = "inline";
+    clearBtn.style.display = "none";
   }
 }
 
 function hideNotificationFooter() {
-  const footer = document.getElementById('notify-footer');
-  const mainContent = document.querySelector('.main-content');
-  footer.style.display = 'none';
-  mainContent.classList.remove('has-footer');
+  const footer = document.getElementById("notify-footer");
+  const mainContent = document.querySelector(".main-content");
+  footer.style.display = "none";
+  mainContent.classList.remove("has-footer");
 }
 
 // ============================================
@@ -1092,78 +1222,93 @@ function hideNotificationFooter() {
 // ============================================
 
 function setupSignupModal() {
-  const modal = document.getElementById('signup-modal');
-  const closeBtn = document.getElementById('modal-close');
-  const submitBtn = document.getElementById('modal-submit');
+  const modal = document.getElementById("signup-modal");
+  const closeBtn = document.getElementById("modal-close");
+  const submitBtn = document.getElementById("modal-submit");
 
-  closeBtn.addEventListener('click', () => {
-    modal.style.display = 'none';
+  closeBtn.addEventListener("click", () => {
+    modal.style.display = "none";
   });
 
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.style.display = 'none';
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) modal.style.display = "none";
   });
 
   // Toggle input fields based on checkbox state
-  document.getElementById('modal-check-email').addEventListener('change', (e) => {
-    document.getElementById('modal-email-input').style.display = e.target.checked ? 'block' : 'none';
-  });
+  document
+    .getElementById("modal-check-email")
+    .addEventListener("change", (e) => {
+      document.getElementById("modal-email-input").style.display = e.target
+        .checked
+        ? "block"
+        : "none";
+    });
 
-  document.getElementById('modal-check-text').addEventListener('change', (e) => {
-    document.getElementById('modal-text-input').style.display = e.target.checked ? 'block' : 'none';
-  });
+  document
+    .getElementById("modal-check-text")
+    .addEventListener("change", (e) => {
+      document.getElementById("modal-text-input").style.display = e.target
+        .checked
+        ? "block"
+        : "none";
+    });
 
-  document.getElementById('modal-check-push').addEventListener('change', (e) => {
-    document.getElementById('modal-push-msg').style.display = e.target.checked ? 'block' : 'none';
-  });
+  document
+    .getElementById("modal-check-push")
+    .addEventListener("change", (e) => {
+      document.getElementById("modal-push-msg").style.display = e.target.checked
+        ? "block"
+        : "none";
+    });
 
-  submitBtn.addEventListener('click', () => completeSignup());
+  submitBtn.addEventListener("click", () => completeSignup());
 }
 
 function showSignupModal() {
-  const modal = document.getElementById('signup-modal');
+  const modal = document.getElementById("signup-modal");
 
   // Reset checkboxes and inputs
-  document.getElementById('modal-check-email').checked = false;
-  document.getElementById('modal-check-text').checked = false;
-  document.getElementById('modal-check-push').checked = false;
-  document.getElementById('modal-email-input').style.display = 'none';
-  document.getElementById('modal-text-input').style.display = 'none';
-  document.getElementById('modal-push-msg').style.display = 'none';
-  document.getElementById('modal-input-email').value = '';
-  document.getElementById('modal-input-text').value = '';
+  document.getElementById("modal-check-email").checked = false;
+  document.getElementById("modal-check-text").checked = false;
+  document.getElementById("modal-check-push").checked = false;
+  document.getElementById("modal-email-input").style.display = "none";
+  document.getElementById("modal-text-input").style.display = "none";
+  document.getElementById("modal-push-msg").style.display = "none";
+  document.getElementById("modal-input-email").value = "";
+  document.getElementById("modal-input-text").value = "";
 
-  modal.style.display = 'flex';
+  modal.style.display = "flex";
 }
 
 function completeSignup() {
-  const modal = document.getElementById('signup-modal');
+  const modal = document.getElementById("signup-modal");
 
   // Save notification method preferences from modal checkboxes
-  const emailChecked = document.getElementById('modal-check-email').checked;
-  const textChecked = document.getElementById('modal-check-text').checked;
-  const pushChecked = document.getElementById('modal-check-push').checked;
+  const emailChecked = document.getElementById("modal-check-email").checked;
+  const textChecked = document.getElementById("modal-check-text").checked;
+  const pushChecked = document.getElementById("modal-check-push").checked;
 
   if (!emailChecked && !textChecked && !pushChecked) {
     // Require at least one method
-    showToast('Please select at least one notification method.');
+    showToast("Please select at least one notification method.");
     return;
   }
 
-  saveNotificationPrefs({ email: emailChecked, text: textChecked, push: pushChecked });
+  saveNotificationPrefs({
+    email: emailChecked,
+    text: textChecked,
+    push: pushChecked,
+  });
 
   // Save each selected street (discard contact info — not persisted)
   pendingSelections.forEach((selection, mainId) => {
-    const street = streetData.find(s => s.main_id === mainId);
+    const street = streetData.find((s) => s.main_id === mainId);
     if (!street) return;
 
-    let savedStreet = savedStreets.find(s => s.main_id === mainId);
+    let savedStreet = savedStreets.find((s) => s.main_id === mainId);
 
     if (!savedStreet) {
-      savedStreet = {
-        ...street,
-        alertSweeping: false
-      };
+      savedStreet = { ...street, alertSweeping: false };
       savedStreets.push(savedStreet);
     }
 
@@ -1177,22 +1322,24 @@ function completeSignup() {
   pendingSelections.clear();
 
   // Close modal
-  modal.style.display = 'none';
+  modal.style.display = "none";
 
   // Update UI
   renderSearchResults();
-  showToast('Notifications saved successfully! View saved notifications in the My Notifications tab.');
+  showToast(
+    "Notifications saved successfully! View saved notifications in the My Notifications tab.",
+  );
 }
 
 function showToast(message) {
-  const toast = document.getElementById('toast');
-  const toastMessage = document.getElementById('toast-message');
+  const toast = document.getElementById("toast");
+  const toastMessage = document.getElementById("toast-message");
 
   toastMessage.textContent = message;
-  toast.style.display = 'block';
+  toast.style.display = "block";
 
   setTimeout(() => {
-    toast.style.display = 'none';
+    toast.style.display = "none";
   }, 4000);
 }
 
@@ -1207,35 +1354,40 @@ function renderResultsTable(streets) {
       </div>
   `;
 
-  streets.forEach(street => {
+  streets.forEach((street) => {
     html += renderStreetRow(street);
   });
 
-  html += '</div>';
+  html += "</div>";
   return html;
 }
 
 function renderStreetRow(street) {
   const schedule = formatSchedule(street);
-  const savedStreet = savedStreets.find(s => s.main_id === street.main_id);
+  const savedStreet = savedStreets.find((s) => s.main_id === street.main_id);
   const pendingSelection = pendingSelections.get(street.main_id);
   const sideText = formatSideText(street.side);
 
   // Calculate status for rich badge display
   const status = calculateStatus(street);
   const nextSweeping = calculateNextSweeping(street, getCurrentDate());
-  const nextDateText = nextSweeping ? formatDateTime(nextSweeping.start) : 'No upcoming';
+  const nextDateText = nextSweeping
+    ? formatDateTime(nextSweeping.start)
+    : "No upcoming";
 
   // Check if already saved or pending selection
-  const hasSweeping = pendingSelection?.sweeping || (savedStreet?.alertSweeping !== false && savedStreet?.alertSweeping);
+  const hasSweeping =
+    pendingSelection?.sweeping ||
+    (savedStreet?.alertSweeping !== false && savedStreet?.alertSweeping);
 
-  const segmentText = street.from && street.to
-    ? `${street.from} to ${street.to}`
-    : street.from
-    ? `From ${street.from}`
-    : street.to
-    ? `To ${street.to}`
-    : '';
+  const segmentText =
+    street.from && street.to
+      ? `${street.from} to ${street.to}`
+      : street.from
+        ? `From ${street.from}`
+        : street.to
+          ? `To ${street.to}`
+          : "";
 
   return `
     <div class="street-row" data-id="${street.main_id}">
@@ -1250,19 +1402,19 @@ function renderStreetRow(street) {
         <span class="next-date">Next parking restriction starts ${escapeHtml(nextDateText)}</span>
       </div>
       <div class="street-row-alert-cell">
-        <input type="checkbox" class="alert-checkbox sweeping-checkbox" data-id="${street.main_id}" data-type="sweeping" ${hasSweeping ? 'checked' : ''}>
+        <input type="checkbox" class="alert-checkbox sweeping-checkbox" data-id="${street.main_id}" data-type="sweeping" ${hasSweeping ? "checked" : ""}>
       </div>
     </div>
   `;
 }
 
 function formatSideText(side) {
-  if (!side) return '';
+  if (!side) return "";
   const sideLower = side.toLowerCase();
-  if (sideLower === 'both') return 'Both sides';
-  if (sideLower === 'odd') return 'Odd side';
-  if (sideLower === 'even') return 'Even side';
-  return side + ' side';
+  if (sideLower === "both") return "Both sides";
+  if (sideLower === "odd") return "Odd side";
+  if (sideLower === "even") return "Even side";
+  return side + " side";
 }
 
 // ============================================
@@ -1270,10 +1422,11 @@ function formatSideText(side) {
 // ============================================
 
 function renderSavedStreets() {
-  const container = document.getElementById('saved-streets');
+  const container = document.getElementById("saved-streets");
 
   if (savedStreets.length === 0) {
-    container.innerHTML = '<p class="empty-state">No saved notifications yet. Search for a street and select alert types to add it here.</p>';
+    container.innerHTML =
+      '<p class="empty-state">No saved notifications yet. Search for a street and select alert types to add it here.</p>';
     return;
   }
 
@@ -1281,9 +1434,9 @@ function renderSavedStreets() {
   const notifyPrefs = loadNotificationPrefs();
 
   // Sort by status urgency (danger first, then warning, then safe)
-  const streetsWithStatus = savedStreets.map(street => ({
+  const streetsWithStatus = savedStreets.map((street) => ({
     street,
-    status: calculateStatus(street)
+    status: calculateStatus(street),
   }));
 
   streetsWithStatus.sort((a, b) => {
@@ -1296,21 +1449,21 @@ function renderSavedStreets() {
     <div class="notification-prefs-panel">
       <h3 class="notification-prefs-title">Notification Preferences</h3>
       <div class="notification-prefs-methods">
-        <div class="notification-pref-item ${notifyPrefs.email ? 'active' : ''}">
-          <input type="checkbox" id="pref-email" ${notifyPrefs.email ? 'checked' : ''}>
+        <div class="notification-pref-item ${notifyPrefs.email ? "active" : ""}">
+          <input type="checkbox" id="pref-email" ${notifyPrefs.email ? "checked" : ""}>
           <label for="pref-email">Email</label>
         </div>
-        <div class="notification-pref-item ${notifyPrefs.text ? 'active' : ''}">
-          <input type="checkbox" id="pref-text" ${notifyPrefs.text ? 'checked' : ''}>
+        <div class="notification-pref-item ${notifyPrefs.text ? "active" : ""}">
+          <input type="checkbox" id="pref-text" ${notifyPrefs.text ? "checked" : ""}>
           <label for="pref-text">Text Message</label>
         </div>
-        <div class="notification-pref-item ${notifyPrefs.push ? 'active' : ''}">
-          <input type="checkbox" id="pref-push" ${notifyPrefs.push ? 'checked' : ''}>
+        <div class="notification-pref-item ${notifyPrefs.push ? "active" : ""}">
+          <input type="checkbox" id="pref-push" ${notifyPrefs.push ? "checked" : ""}>
           <label for="pref-push">Push Notification</label>
         </div>
       </div>
       <div class="notification-prefs-save">
-        <button id="update-prefs-btn" class="notification-prefs-save-btn">${editModeEnabled ? 'Save Preferences' : 'Update Preferences'}</button>
+        <button id="update-prefs-btn" class="notification-prefs-save-btn">${editModeEnabled ? "Save Preferences" : "Update Preferences"}</button>
       </div>
     </div>
   `;
@@ -1330,17 +1483,17 @@ function renderSavedStreets() {
     html += renderSavedStreetRow(street, status);
   });
 
-  html += '</div>';
+  html += "</div>";
 
   container.innerHTML = html;
 
   // Add event listeners to alert checkboxes
-  container.querySelectorAll('.alert-checkbox').forEach(checkbox => {
-    checkbox.addEventListener('change', handleSavedAlertCheckboxChange);
+  container.querySelectorAll(".alert-checkbox").forEach((checkbox) => {
+    checkbox.addEventListener("change", handleSavedAlertCheckboxChange);
   });
 
   // Add event listener to update/save preferences button
-  document.getElementById('update-prefs-btn').addEventListener('click', () => {
+  document.getElementById("update-prefs-btn").addEventListener("click", () => {
     if (!editModeEnabled) {
       // Enter edit mode
       editModeEnabled = true;
@@ -1348,18 +1501,20 @@ function renderSavedStreets() {
     } else {
       // Save and exit edit mode — apply pending removals
       if (pendingRemovals.size > 0) {
-        savedStreets = savedStreets.filter(s => !pendingRemovals.has(s.main_id));
+        savedStreets = savedStreets.filter(
+          (s) => !pendingRemovals.has(s.main_id),
+        );
         pendingRemovals.clear();
       }
       const newPrefs = {
-        email: document.getElementById('pref-email').checked,
-        text: document.getElementById('pref-text').checked,
-        push: document.getElementById('pref-push').checked
+        email: document.getElementById("pref-email").checked,
+        text: document.getElementById("pref-text").checked,
+        push: document.getElementById("pref-push").checked,
       };
       saveNotificationPrefs(newPrefs);
       saveSavedStreets();
       editModeEnabled = false;
-      showToast('Notification preferences saved!');
+      showToast("Notification preferences saved!");
       renderSavedStreets();
     }
   });
@@ -1374,21 +1529,24 @@ function renderSavedStreetRow(street, status) {
 
   // Get next sweeping date
   const nextSweeping = calculateNextSweeping(street, getCurrentDate());
-  const nextDateText = nextSweeping ? formatDateTime(nextSweeping.start) : 'No upcoming';
+  const nextDateText = nextSweeping
+    ? formatDateTime(nextSweeping.start)
+    : "No upcoming";
 
-  const segmentText = street.from && street.to
-    ? `${street.from} to ${street.to}`
-    : street.from
-    ? `From ${street.from}`
-    : street.to
-    ? `To ${street.to}`
-    : '';
+  const segmentText =
+    street.from && street.to
+      ? `${street.from} to ${street.to}`
+      : street.from
+        ? `From ${street.from}`
+        : street.to
+          ? `To ${street.to}`
+          : "";
 
   const statusClass = status.level;
   const statusText = status.label;
 
-  const disabledAttr = editModeEnabled ? '' : 'disabled';
-  const lockedClass = editModeEnabled ? '' : 'checkbox-locked';
+  const disabledAttr = editModeEnabled ? "" : "disabled";
+  const lockedClass = editModeEnabled ? "" : "checkbox-locked";
 
   return `
     <div class="street-row saved-row status-${statusClass}" data-id="${street.main_id}">
@@ -1404,7 +1562,7 @@ function renderSavedStreetRow(street, status) {
         <span class="next-date-status">Next: ${escapeHtml(nextDateText)}</span>
       </div>
       <div class="street-row-alert-cell ${lockedClass}">
-        <input type="checkbox" class="alert-checkbox sweeping-checkbox" data-id="${street.main_id}" data-type="sweeping" ${hasSweeping ? 'checked' : ''} ${disabledAttr}>
+        <input type="checkbox" class="alert-checkbox sweeping-checkbox" data-id="${street.main_id}" data-type="sweeping" ${hasSweeping ? "checked" : ""} ${disabledAttr}>
       </div>
     </div>
   `;
@@ -1416,16 +1574,16 @@ function handleSavedAlertCheckboxChange(e) {
 
   if (editModeEnabled) {
     // In edit mode, defer removal — just mark/unmark visually
-    const row = e.target.closest('.street-row');
+    const row = e.target.closest(".street-row");
     if (!isChecked) {
       pendingRemovals.add(mainId);
-      row.classList.add('pending-removal');
+      row.classList.add("pending-removal");
     } else {
       pendingRemovals.delete(mainId);
-      row.classList.remove('pending-removal');
+      row.classList.remove("pending-removal");
     }
   } else {
-    const savedStreet = savedStreets.find(s => s.main_id === mainId);
+    const savedStreet = savedStreets.find((s) => s.main_id === mainId);
     if (!savedStreet) return;
     savedStreet.alertSweeping = isChecked;
     saveSavedStreets();
@@ -1434,13 +1592,13 @@ function handleSavedAlertCheckboxChange(e) {
 }
 
 function updateAlertBadge() {
-  const badge = document.getElementById('alert-badge');
-  const hasAlert = savedStreets.some(street => {
+  const badge = document.getElementById("alert-badge");
+  const hasAlert = savedStreets.some((street) => {
     const status = calculateStatus(street);
-    return status.level === 'warning' || status.level === 'danger';
+    return status.level === "warning" || status.level === "danger";
   });
 
-  badge.style.display = hasAlert ? 'inline-flex' : 'none';
+  badge.style.display = hasAlert ? "inline-flex" : "none";
 }
 
 // ============================================
@@ -1455,54 +1613,77 @@ function formatSchedule(street) {
   const time = formatTimeRange(street.start_time, street.end_time);
 
   // Check if every day
-  if (street.every_day === 't') {
+  if (street.every_day === "t") {
     return `Every day, ${time}`;
   }
 
   // Get active days
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayNames = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const dayKeys = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
   const activeDays = dayKeys
-    .map((key, index) => street[key] === 't' ? dayNames[index] : null)
+    .map((key, index) => (street[key] === "t" ? dayNames[index] : null))
     .filter(Boolean);
 
   // Get active weeks
-  const weekOrdinals = ['1st', '2nd', '3rd', '4th', '5th'];
-  const weekKeys = ['week_1', 'week_2', 'week_3', 'week_4', 'week_5'];
+  const weekOrdinals = ["1st", "2nd", "3rd", "4th", "5th"];
+  const weekKeys = ["week_1", "week_2", "week_3", "week_4", "week_5"];
   const activeWeeks = weekKeys
-    .map((key, index) => street[key] === 't' ? weekOrdinals[index] : null)
+    .map((key, index) => (street[key] === "t" ? weekOrdinals[index] : null))
     .filter(Boolean);
 
   // Check if all weeks are active
-  const allWeeks = activeWeeks.length === 5 ||
-    (street.week_1 === 't' && street.week_2 === 't' && street.week_3 === 't' && street.week_4 === 't');
+  const allWeeks =
+    activeWeeks.length === 5 ||
+    (street.week_1 === "t" &&
+      street.week_2 === "t" &&
+      street.week_3 === "t" &&
+      street.week_4 === "t");
 
   // Format the schedule
-  let scheduleText = '';
+  let scheduleText = "";
 
   if (activeDays.length === 0) {
-    return 'No schedule available';
+    return "No schedule available";
   }
 
   if (activeDays.length === 7) {
-    scheduleText = 'Every day';
+    scheduleText = "Every day";
   } else if (activeDays.length === 1) {
     const dayName = activeDays[0];
     if (allWeeks) {
       scheduleText = `Every ${dayName}`;
     } else {
-      scheduleText = `${activeWeeks.join(' & ')} ${dayName}${activeWeeks.length > 1 ? 's' : ''}`;
+      scheduleText = `${activeWeeks.join(" & ")} ${dayName}${activeWeeks.length > 1 ? "s" : ""}`;
     }
   } else {
     // Multiple days
-    const dayList = activeDays.length === 2
-      ? activeDays.join(' & ')
-      : activeDays.slice(0, -1).join(', ') + ' & ' + activeDays[activeDays.length - 1];
+    const dayList =
+      activeDays.length === 2
+        ? activeDays.join(" & ")
+        : activeDays.slice(0, -1).join(", ") +
+          " & " +
+          activeDays[activeDays.length - 1];
 
     if (allWeeks) {
       scheduleText = `Every ${dayList}`;
     } else {
-      scheduleText = `${activeWeeks.join(' & ')} week${activeWeeks.length > 1 ? 's' : ''}: ${dayList}`;
+      scheduleText = `${activeWeeks.join(" & ")} week${activeWeeks.length > 1 ? "s" : ""}: ${dayList}`;
     }
   }
 
@@ -1511,11 +1692,13 @@ function formatSchedule(street) {
 
 function formatTimeRange(startTime, endTime) {
   const formatTime = (timeStr) => {
-    if (!timeStr) return '';
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const period = hours >= 12 ? 'PM' : 'AM';
+    if (!timeStr) return "";
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
     const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-    return minutes === 0 ? `${displayHours} ${period}` : `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+    return minutes === 0
+      ? `${displayHours} ${period}`
+      : `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
   };
 
   const start = formatTime(startTime);
@@ -1524,7 +1707,7 @@ function formatTimeRange(startTime, endTime) {
   if (start && end) {
     return `${start} - ${end}`;
   }
-  return start || end || '';
+  return start || end || "";
 }
 
 // ============================================
@@ -1541,10 +1724,10 @@ function calculateStatus(street) {
 
   if (!nextSweeping) {
     return {
-      level: 'safe',
-      icon: '✓',
-      label: 'Safe to park',
-      detail: 'No sweeping schedule found'
+      level: "safe",
+      icon: "✓",
+      label: "Safe to park",
+      detail: "No sweeping schedule found",
     };
   }
 
@@ -1554,66 +1737,76 @@ function calculateStatus(street) {
   // Check if sweeping is currently happening
   if (now >= nextSweeping.start && now <= endTime) {
     return {
-      level: 'danger',
-      icon: '!',
-      label: 'Move your car now',
-      detail: `Sweeping in progress until ${formatDateTime(endTime)}`
+      level: "danger",
+      icon: "!",
+      label: "Move your car now",
+      detail: `Sweeping in progress until ${formatDateTime(endTime)}`,
     };
   }
 
   // Within 2 hours
   if (hoursUntil <= 2 && hoursUntil > 0) {
     return {
-      level: 'danger',
-      icon: '!',
-      label: 'Move your car now',
-      detail: `Sweeping starts ${formatDateTime(nextSweeping.start)}`
+      level: "danger",
+      icon: "!",
+      label: "Move your car now",
+      detail: `Sweeping starts ${formatDateTime(nextSweeping.start)}`,
     };
   }
 
   // Within 24 hours
   if (hoursUntil <= 24 && hoursUntil > 0) {
     return {
-      level: 'warning',
-      icon: '!',
-      label: 'Move soon',
-      detail: `Sweeping ${formatDateTime(nextSweeping.start)}`
+      level: "warning",
+      icon: "!",
+      label: "Move soon",
+      detail: `Sweeping ${formatDateTime(nextSweeping.start)}`,
     };
   }
 
   // More than 24 hours away
   return {
-    level: 'safe',
-    icon: '✓',
-    label: 'Safe to park',
-    detail: `Next sweeping ${formatDateTime(nextSweeping.start)}`
+    level: "safe",
+    icon: "✓",
+    label: "Safe to park",
+    detail: `Next sweeping ${formatDateTime(nextSweeping.start)}`,
   };
 }
 
 function calculateNextSweeping(street, fromDate) {
-  const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const weekKeys = ['week_1', 'week_2', 'week_3', 'week_4', 'week_5'];
+  const dayKeys = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const weekKeys = ["week_1", "week_2", "week_3", "week_4", "week_5"];
 
   // Get active days (0-6, Sunday-Saturday)
   const activeDays = dayKeys
-    .map((key, index) => street[key] === 't' ? index : null)
-    .filter(val => val !== null);
+    .map((key, index) => (street[key] === "t" ? index : null))
+    .filter((val) => val !== null);
 
   // Get active weeks (1-5)
   const activeWeeks = weekKeys
-    .map((key, index) => street[key] === 't' ? index + 1 : null)
-    .filter(val => val !== null);
+    .map((key, index) => (street[key] === "t" ? index + 1 : null))
+    .filter((val) => val !== null);
 
   // Handle every_day flag
-  const isEveryDay = street.every_day === 't';
+  const isEveryDay = street.every_day === "t";
 
   if (activeDays.length === 0 && !isEveryDay) {
     return null;
   }
 
   // Parse times
-  const [startHour, startMin] = (street.start_time || '8:00').split(':').map(Number);
-  const [endHour, endMin] = (street.end_time || '12:00').split(':').map(Number);
+  const [startHour, startMin] = (street.start_time || "8:00")
+    .split(":")
+    .map(Number);
+  const [endHour, endMin] = (street.end_time || "12:00").split(":").map(Number);
 
   // Search for next occurrence within the next 60 days
   const searchDays = 60;
@@ -1625,7 +1818,8 @@ function calculateNextSweeping(street, fromDate) {
 
     // Check if this day matches the schedule
     const dayMatches = isEveryDay || activeDays.includes(dayOfWeek);
-    const weekMatches = activeWeeks.length === 0 || activeWeeks.includes(weekOfMonth);
+    const weekMatches =
+      activeWeeks.length === 0 || activeWeeks.includes(weekOfMonth);
 
     if (dayMatches && weekMatches) {
       // Create the sweeping start time for this date
@@ -1642,10 +1836,7 @@ function calculateNextSweeping(street, fromDate) {
 
       // If this sweeping hasn't ended yet, return it
       if (sweepingEnd > fromDate) {
-        return {
-          start: sweepingStart,
-          end: sweepingEnd
-        };
+        return { start: sweepingStart, end: sweepingEnd };
       }
     }
 
@@ -1682,10 +1873,10 @@ function formatDateTime(date) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const isTomorrow = date.toDateString() === tomorrow.toDateString();
 
-  const timeStr = date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
+  const timeStr = date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
   });
 
   if (isToday) {
@@ -1693,10 +1884,10 @@ function formatDateTime(date) {
   } else if (isTomorrow) {
     return `tomorrow at ${timeStr}`;
   } else {
-    const dateStr = date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
+    const dateStr = date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
     });
     return `${dateStr} at ${timeStr}`;
   }
@@ -1707,29 +1898,29 @@ function formatDateTime(date) {
 // ============================================
 
 function setupDemoMode() {
-  const header = document.querySelector('.header');
-  const demoPanel = document.getElementById('demo-panel');
-  const closeBtn = document.getElementById('close-demo');
-  const applyBtn = document.getElementById('apply-demo');
-  const resetBtn = document.getElementById('reset-demo');
-  const dateInput = document.getElementById('demo-date');
-  const timeInput = document.getElementById('demo-time');
+  const header = document.querySelector(".header");
+  const demoPanel = document.getElementById("demo-panel");
+  const closeBtn = document.getElementById("close-demo");
+  const applyBtn = document.getElementById("apply-demo");
+  const resetBtn = document.getElementById("reset-demo");
+  const dateInput = document.getElementById("demo-date");
+  const timeInput = document.getElementById("demo-time");
 
   // Triple-tap header to show demo panel
   let tapCount = 0;
   let tapTimeout;
 
-  header.addEventListener('click', () => {
+  header.addEventListener("click", () => {
     tapCount++;
     clearTimeout(tapTimeout);
 
     if (tapCount >= 3) {
-      demoPanel.style.display = 'block';
+      demoPanel.style.display = "block";
       tapCount = 0;
 
       // Set current values
       const now = getCurrentDate();
-      dateInput.value = now.toISOString().split('T')[0];
+      dateInput.value = now.toISOString().split("T")[0];
       timeInput.value = now.toTimeString().slice(0, 5);
     }
 
@@ -1738,11 +1929,11 @@ function setupDemoMode() {
     }, 500);
   });
 
-  closeBtn.addEventListener('click', () => {
-    demoPanel.style.display = 'none';
+  closeBtn.addEventListener("click", () => {
+    demoPanel.style.display = "none";
   });
 
-  applyBtn.addEventListener('click', () => {
+  applyBtn.addEventListener("click", () => {
     const dateVal = dateInput.value;
     const timeVal = timeInput.value;
 
@@ -1753,10 +1944,10 @@ function setupDemoMode() {
     }
   });
 
-  resetBtn.addEventListener('click', () => {
+  resetBtn.addEventListener("click", () => {
     simulatedDate = null;
     const now = new Date();
-    dateInput.value = now.toISOString().split('T')[0];
+    dateInput.value = now.toISOString().split("T")[0];
     timeInput.value = now.toTimeString().slice(0, 5);
     renderSavedStreets();
     updateAlertBadge();
@@ -1768,8 +1959,8 @@ function setupDemoMode() {
 // ============================================
 
 function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
+  if (!text) return "";
+  const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
