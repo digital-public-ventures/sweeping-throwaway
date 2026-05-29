@@ -715,11 +715,21 @@ function narrowToBlocks(streetName, nearestIntersectionName, neighborhood) {
     if (touching.length) return touching;
   }
 
-  // b. Neighborhood narrowing (planning_neighborhood ↔ dist_name). Skipped if
-  //    it empties the set (names don't always align: Dorchester N/S, etc.).
+  // b. Neighborhood narrowing (SAM planning_neighborhood ↔ CSV dist_name).
+  //    Containment, not equality: SAM returns a single neighborhood ("Brighton")
+  //    while the CSV often uses a compound district name ("Allston/Brighton"),
+  //    so exact-match silently failed and dropped through to whole-street (this
+  //    is why "1950 Commonwealth" returned all ~19 rows while "122
+  //    Commonwealth" — Back Bay, which equals its CSV district — narrowed to 2).
+  //    "Multiple" is a catch-all district that should never match a specific
+  //    neighborhood. Skipped if it empties the set (names don't always align).
   if (neighborhood) {
-    const n = neighborhood.toLowerCase();
-    const inNbhd = base.filter((row) => (row.dist_name || '').toLowerCase() === n);
+    const n = neighborhood.toLowerCase().trim();
+    const inNbhd = base.filter((row) => {
+      const d = (row.dist_name || '').toLowerCase().trim();
+      if (!d || d === 'multiple') return false;
+      return d === n || d.includes(n) || n.includes(d);
+    });
     if (inNbhd.length) return inNbhd;
   }
 
