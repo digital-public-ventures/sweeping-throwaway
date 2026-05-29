@@ -715,11 +715,21 @@ function narrowToBlocks(streetName, nearestIntersectionName, neighborhood) {
     if (touching.length) return touching;
   }
 
-  // b. Neighborhood narrowing (planning_neighborhood ↔ dist_name). Skipped if
-  //    it empties the set (names don't always align: Dorchester N/S, etc.).
+  // b. Neighborhood narrowing (SAM planning_neighborhood ↔ CSV dist_name).
+  //    Containment, not equality: SAM returns a single neighborhood ("Brighton")
+  //    while the CSV often uses a compound district name ("Allston/Brighton"),
+  //    so exact-match silently failed and dropped through to whole-street (this
+  //    is why "1950 Commonwealth" returned all ~19 rows while "122
+  //    Commonwealth" — Back Bay, which equals its CSV district — narrowed to 2).
+  //    "Multiple" is a catch-all district that should never match a specific
+  //    neighborhood. Skipped if it empties the set (names don't always align).
   if (neighborhood) {
-    const n = neighborhood.toLowerCase();
-    const inNbhd = base.filter((row) => (row.dist_name || '').toLowerCase() === n);
+    const n = neighborhood.toLowerCase().trim();
+    const inNbhd = base.filter((row) => {
+      const d = (row.dist_name || '').toLowerCase().trim();
+      if (!d || d === 'multiple') return false;
+      return d === n || d.includes(n) || n.includes(d);
+    });
     if (inNbhd.length) return inNbhd;
   }
 
@@ -728,14 +738,114 @@ function narrowToBlocks(streetName, nearestIntersectionName, neighborhood) {
   return base;
 }
 
-// Geocode-match variant: fetches the nearest intersection for the match's
-// point, then delegates to narrowToBlocks. Skips the network when the street
-// is a single block (nothing to narrow).
+// ---- Cross-street proximity narrowing -------------------------------------
+// The tightest narrowing rung. A CSV block is bounded by two cross streets
+// (`from`/`to`); we geocode each distinct cross street, rank them by straight-
+// line distance to the address, and return the block bounded by the nearest
+// cross street and its nearest block-partner. This sidesteps two dead ends the
+// Phase-2 spike exposed (see temp/plans/search-narrowing-two-phase.md):
+//   - SAM's nearest *centerline* at a mid-block address is often the alley
+//     behind the building, not the avenue — so xy_lookup's intersection misses.
+//   - A divided arterial (Commonwealth Ave = 204 ArcGIS segments, ~3× its true
+//     length) has no single centerline to measure distance *along*; ranking
+//     cross-street *points* by raw distance needs no centerline at all.
+
+const CROSS_STREET_TIE_FEET = 250; // within this, two blocks are a tie → return both
+
+// SAM intersection_lookup is network; cache per (street, cross) for the session
+// since a street's cross streets are stable and re-queried across keystrokes.
+const _crossStreetPointCache = new Map();
+
+async function resolveIntersectionPoint(street, cross) {
+  const key = `${normalizeStreetName(street)}|${normalizeStreetName(cross)}`;
+  if (_crossStreetPointCache.has(key)) return _crossStreetPointCache.get(key);
+  let pt = null;
+  try {
+    const r = await samIntersectionLookup(`${street} and ${cross}`);
+    if (r.length) pt = { lat: r[0].matching_intersection_y, lng: r[0].matching_intersection_x };
+  } catch {
+    // leave null — caller treats unresolved cross streets as "can't place"
+  }
+  _crossStreetPointCache.set(key, pt);
+  return pt;
+}
+
+// Equirectangular distance in feet — fine at city scale for ranking.
+function distanceFeet(a, b) {
+  const FT_PER_DEG_LAT = 364567;
+  const dLat = (b.lat - a.lat) * FT_PER_DEG_LAT;
+  const dLng = (b.lng - a.lng) * FT_PER_DEG_LAT * Math.cos((a.lat * Math.PI) / 180);
+  return Math.hypot(dLat, dLng);
+}
+
+// Returns the CSV rows for the block(s) bounding `point`, or null if the cross
+// streets can't be placed (caller then falls back to the ladder). Always both
+// sides — collects every row sharing the chosen block's from/to.
+async function narrowByCrossStreetProximity(streetName, base, point) {
+  const crosses = [...new Set(base.flatMap((r) => [r.from, r.to]).filter(Boolean))]
+    .filter((c) => !/dead end/i.test(c));
+  const resolved = await Promise.all(
+    crosses.map(async (name) => ({ name, pt: await resolveIntersectionPoint(streetName, name) }))
+  );
+
+  const dist = new Map();
+  for (const { name, pt } of resolved) if (pt) dist.set(name, distanceFeet(point, pt));
+  if (dist.size < 2) return null;
+
+  // Nearest cross street to the address.
+  const ranked = [...dist.entries()].sort((a, b) => a[1] - b[1]);
+  const nearest = ranked[0][0];
+
+  // Among distinct blocks touching the nearest cross street, rank by how close
+  // their OTHER endpoint is — the block whose far corner is nearest brackets
+  // the address most tightly.
+  const distinct = [...new Set(base.map((r) => `${r.from}|${r.to}`))].map((s) => {
+    const [from, to] = s.split('|');
+    return { from, to };
+  });
+  const candidates = distinct
+    .map((blk) => {
+      const onFrom = streetNamesMatch(blk.from, nearest);
+      const onTo = streetNamesMatch(blk.to, nearest);
+      if (!onFrom && !onTo) return null;
+      const other = onFrom ? blk.to : blk.from;
+      const otherDist = dist.get(other);
+      return otherDist == null ? null : { blk, otherDist };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.otherDist - b.otherDist);
+  if (!candidates.length) return null;
+
+  // Tie window: an address sitting on top of a major intersection may have two
+  // adjacent blocks nearly equidistant (e.g. 1950 Commonwealth at Chestnut Hill
+  // Ave). Return both rather than guess.
+  const nearestOther = candidates[0].otherDist;
+  const chosen = candidates.filter((c) => c.otherDist - nearestOther <= CROSS_STREET_TIE_FEET);
+
+  return base.filter((row) =>
+    chosen.some((c) => row.from === c.blk.from && row.to === c.blk.to)
+  );
+}
+
+// Geocode-match variant. Tries cross-street proximity first (tightest), then
+// falls back to the nearest-intersection / neighborhood / whole-street ladder.
+// Skips the network when the street is a single block (nothing to narrow).
 async function narrowAddressMatch(match) {
   const base = streetData.filter((row) => streetNamesMatch(row.st_name, match.street_name));
   const distinctBlocks = new Set(base.map((row) => `${row.from}|${row.to}`));
   if (distinctBlocks.size <= 1) return base;
 
+  const point = { lat: match.matching_address_y, lng: match.matching_address_x };
+
+  // Rung 1: cross-street proximity (tightest; no centerline needed).
+  try {
+    const byProximity = await narrowByCrossStreetProximity(match.street_name, base, point);
+    if (byProximity?.length) return byProximity;
+  } catch {
+    // fall through to the ladder
+  }
+
+  // Rung 2+: nearest-intersection (xy_lookup) → neighborhood → whole street.
   let intersectionName = null;
   try {
     const xy = await samXyLookup(match.matching_address_x, match.matching_address_y);
