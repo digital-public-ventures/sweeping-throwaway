@@ -13,11 +13,17 @@ let simulatedDate = null; // For demo mode
 
 // Pagination state
 let currentPage = 1;
-let pageSize = 10;
+let pageSize = 100;
 let currentSearchResults = [];
 
 // Selection state (persists across pagination)
 let pendingSelections = new Map(); // mainId -> { sweeping: bool }
+
+// Debug-filters state for the current search. `baseRows` is all results for the
+// nearest road(s); each filterDef carries the set of main_ids it keeps; `checked`
+// is the active subset. Displayed results = baseRows narrowed by every checked
+// filter (AND). With nothing checked, all of baseRows shows.
+let lastSearch = { baseRows: [], filterDefs: [], checked: new Set() };
 
 // Edit mode state for My Notifications tab
 let editModeEnabled = false;
@@ -328,9 +334,18 @@ let mapInstance = null;
 // Leaflet layer group holding the polylines for the current search's blocks.
 // Created lazily on first draw, then reused/cleared so re-searching swaps lines.
 let resultSegmentLayer = null;
-// Block-key -> { mapped, paths } from SEGMENT_GEOMETRY_JSON. null until loaded;
-// the map degrades gracefully (pin + lookup still work) if the fetch fails.
+// Block-key -> { mapped, bridged, paths } from SEGMENT_GEOMETRY_JSON. null until
+// loaded; the map degrades gracefully (pin + lookup still work) if it fails.
 let segmentGeometry = null;
+// When false, blocks whose geometry was only recovered via gap-bridging
+// (`bridged: true` — an approximate connector across a digitized gap) are not
+// drawn. Toggled from the debug-filters panel.
+let showBridgedSegments = true;
+// Optional {lat,lng} the map should center on for the current search (the
+// intersection corner). When set, drawResultSegments centers there — so the
+// screen pin lands on the corner — instead of fitting to the (possibly far-
+// reaching) result segments. null → fit to the segments.
+let lastSearchFocus = null;
 
 // Distinct line colors + dash patterns, matching commonwealth-ave-segments-map.html.
 // Each drawn segment cycles to the next color (and dash) so adjacent / overlapping
@@ -416,6 +431,7 @@ function drawResultSegments(results) {
     if (drawn.has(key)) continue;
     const rec = segmentGeometry[blockKey];
     if (!rec?.mapped || !rec.paths.length) continue;
+    if (rec.bridged && !showBridgedSegments) continue;
     drawn.add(key);
 
     const color = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
@@ -433,8 +449,15 @@ function drawResultSegments(results) {
     for (const path of paths) for (const pt of path) bounds.push(pt);
   }
 
-  if (bounds.length) mapInstance.fitBounds(bounds, { padding: [30, 30] });
-  return bounds.length > 0;
+  // Center on the search's focal corner (so the screen pin sits on it) rather
+  // than fitting to the segments — an intersection block can run far from the
+  // corner (e.g. the bridged Charles St line up to Charles Circle).
+  if (lastSearchFocus) {
+    mapInstance.setView([lastSearchFocus.lat, lastSearchFocus.lng], 16);
+  } else if (bounds.length) {
+    mapInstance.fitBounds(bounds, { padding: [30, 30] });
+  }
+  return bounds.length > 0 || !!lastSearchFocus;
 }
 
 function toggleMap() {
@@ -555,6 +578,8 @@ function initMap() {
 async function onPinMoved({ lat, lng }) {
   const status = document.getElementById("map-status");
   status.textContent = "Looking up street…";
+  // Pin-drop results fit to the address block, not a stale intersection corner.
+  lastSearchFocus = null;
   try {
     const data = await samXyLookup(lng, lat);
     const street =
@@ -595,23 +620,20 @@ async function onPinMoved({ lat, lng }) {
     ) {
       input.value = `${addrNum} ${addrStreet}`;
       status.textContent = `Showing results for ${data.nearest_address_full}.`;
-      // Route through the SAME precise narrowing the typed-address path uses
-      // (narrowAddressMatch → cross-street proximity + same-side-of-intersection
-      // filter), not the older name/neighborhood ladder. narrowToBlocks ignores
-      // the address point, so on its own the pin path returns the block on the
-      // far side of the nearest intersection. xy_lookup's nearest_address_x/y is
-      // the snapped address point — the same anchor geocode provides.
-      let blocks = await narrowAddressMatch({
-        street_name: addrStreet,
-        matching_address_x: data.nearest_address_x,
-        matching_address_y: data.nearest_address_y,
-        planning_neighborhood: data.planning_neighborhood,
-      });
-      if (!blocks.length) blocks = localStreetSearch(addrStreet.toLowerCase());
-      renderMatchesOrError(
-        blocks,
-        `No sweeping rules found near ${data.nearest_address_full}.`,
-      );
+      // Route through the SAME context builder the typed-address path uses, so
+      // the pin gets identical narrowing + debug filters. xy_lookup's snapped
+      // nearest_address_x/y is the same anchor geocode provides.
+      const emptyMsg = `No sweeping rules found near ${data.nearest_address_full}.`;
+      const ctx = await buildAddressFilterDefs([
+        {
+          street_name: addrStreet,
+          matching_address_x: data.nearest_address_x,
+          matching_address_y: data.nearest_address_y,
+          planning_neighborhood: data.planning_neighborhood,
+        },
+      ]);
+      if (ctx.base.length) applySearch(ctx.base, ctx.filterDefs, emptyMsg);
+      else applySearch(localStreetSearch(addrStreet.toLowerCase()), [], emptyMsg);
       return;
     }
 
@@ -759,6 +781,9 @@ function performSearch(options = {}) {
   const searchError = document.getElementById("search-error");
 
   searchError.style.display = "none";
+  // Default: fit the map to the result segments. Only intersection search sets a
+  // focal corner (below). Reset here so a prior intersection doesn't linger.
+  lastSearchFocus = null;
 
   if (!query) {
     resultsContainer.innerHTML = "";
@@ -795,6 +820,7 @@ function performSearch(options = {}) {
 // (misleading) street list. Replaced by renderMatchesOrError when results land.
 function showSearchPending(query) {
   document.getElementById("search-error").style.display = "none";
+  document.getElementById("debug-filters").innerHTML = "";
   document.getElementById("search-results").innerHTML =
     `<p class="loading">Finding sweeping routes for "${escapeHtml(query)}"</p>`;
   hideNotificationFooter();
@@ -829,23 +855,93 @@ function sortBlocks(matches) {
 
 // Render matches into the results table, or show an error if empty. Shared by
 // all three search paths so they stay consistent.
-function renderMatchesOrError(matches, emptyMessage) {
-  const resultsContainer = document.getElementById("search-results");
+// Establish a search result with an optional set of debug filters. `baseRows`
+// is all results for the nearest road(s); each filterDef narrows it. The fired
+// production filter starts checked; the user can toggle any of them. Unchecking
+// everything reveals all of baseRows. Empty baseRows shows `emptyMessage`.
+function applySearch(baseRows, filterDefs, emptyMessage) {
   const searchError = document.getElementById("search-error");
-  if (!matches.length) {
-    resultsContainer.innerHTML = "";
+  if (!baseRows.length) {
+    document.getElementById("search-results").innerHTML = "";
+    document.getElementById("debug-filters").innerHTML = "";
+    lastSearch = { baseRows: [], filterDefs: [], checked: new Set() };
     searchError.textContent = emptyMessage;
     searchError.style.display = "block";
     hideNotificationFooter();
     return;
   }
   searchError.style.display = "none";
-  sortBlocks(matches);
-  currentSearchResults = matches;
+  const checked = new Set(
+    filterDefs.filter((f) => f.available && f.defaultChecked).map((f) => f.id),
+  );
+  lastSearch = { baseRows, filterDefs, checked };
+  applyDebugFilters();
+}
+
+// No-filter result (intersection-local fallback, plain-street browse, etc.).
+function renderMatchesOrError(matches, emptyMessage) {
+  applySearch(matches, [], emptyMessage);
+}
+
+// Recompute the displayed results from baseRows ∩ every checked filter, then
+// re-render the filter panel, the table, and the map. No network — filters
+// carry precomputed main_id sets.
+function applyDebugFilters() {
+  let rows = lastSearch.baseRows.slice();
+  for (const f of lastSearch.filterDefs) {
+    if (f.available && lastSearch.checked.has(f.id)) {
+      rows = rows.filter((r) => f.keepIds.has(r.main_id));
+    }
+  }
+  sortBlocks(rows);
+  currentSearchResults = rows;
   currentPage = 1;
+  renderDebugFilters();
   renderSearchResults();
-  // Redraw map polylines for the new result set (no-op if the map isn't open).
-  drawResultSegments(matches);
+  drawResultSegments(currentSearchResults);
+}
+
+function renderDebugFilters() {
+  const el = document.getElementById("debug-filters");
+  if (!lastSearch.baseRows.length) {
+    el.innerHTML = "";
+    return;
+  }
+  const boxes = lastSearch.filterDefs
+    .map(
+      (f) => `
+      <label class="debug-filter${f.available ? "" : " disabled"}">
+        <input type="checkbox" data-filter="${f.id}"${lastSearch.checked.has(f.id) ? " checked" : ""}${f.available ? "" : " disabled"}>
+        ${escapeHtml(f.label)}
+        <span class="debug-filter-count">${f.available ? f.keepIds.size : "n/a"}</span>
+      </label>`,
+    )
+    .join("");
+  // Map-geometry toggle: hide blocks whose lines were recovered via gap-bridging
+  // (approximate connectors). Count = bridged blocks among the current results.
+  const bridgedCount = currentSearchResults.filter(
+    (r) => segmentGeometry?.[segmentBlockKey(r.st_name, r.from, r.to)]?.bridged,
+  ).length;
+  const bridgedBox = `
+      <label class="debug-filter">
+        <input type="checkbox" id="toggle-bridged"${showBridgedSegments ? " checked" : ""}>
+        Bridged geometry
+        <span class="debug-filter-count">${bridgedCount}</span>
+      </label>`;
+  el.innerHTML = `<span class="debug-filters-title">Debug filters</span>${boxes}${bridgedBox}`;
+
+  el.querySelectorAll("input[data-filter]").forEach((cb) => {
+    cb.addEventListener("change", () => {
+      if (cb.checked) lastSearch.checked.add(cb.dataset.filter);
+      else lastSearch.checked.delete(cb.dataset.filter);
+      applyDebugFilters();
+    });
+  });
+  el.querySelector("#toggle-bridged")?.addEventListener("change", (e) => {
+    showBridgedSegments = e.target.checked;
+    // Geometry-only toggle: redraw the map, leave the result rows alone.
+    drawResultSegments(currentSearchResults);
+  });
 }
 
 // Intersection search: SAM canonicalizes the user query, then we filter the
@@ -853,63 +949,178 @@ function renderMatchesOrError(matches, emptyMessage) {
 // local split-and-filter if SAM returns nothing (catches Boston idioms like
 // "Mt Vernon" that SAM over-normalizes to "Mount Vernon").
 async function performIntersectionSearch(rawQuery) {
-  let matches = [];
+  lastSearchFocus = null;
+  const emptyMsg = `No sweeping rules found for the intersection "${rawQuery}". Try the full street names.`;
 
-  // 1. SAM /intersection_lookup — gets canonical names like "Beacon St &
-  //    Charles St" out of "Beacon & Charles".
+  // SAM /intersection_lookup canonicalizes "Beacon & Charles" → "Beacon St &
+  // Charles St" and gives the corner point. Base = all rows for both streets;
+  // the "At this corner" filter narrows to the blocks at/through the corner.
   try {
     const data = await samIntersectionLookup(rawQuery);
     if (data.length) {
       const intrName = data[0].matching_intersection_full.split(",")[0];
-      matches = filterByIntersection(intrName);
+      const corner = await addCornerContainingBlocks(
+        intrName,
+        data[0],
+        filterByIntersection(intrName),
+      );
+      const cornerIds = new Set(corner.map((r) => r.main_id));
+      const parts = intrName.split(/\s+(?:and|&)\s+/i).map((s) => s.trim());
+      const base = streetData.filter((r) =>
+        parts.some((s) => streetNamesMatch(r.st_name, s)),
+      );
+      if (base.length) {
+        // Center the map on the corner, not the (possibly far-reaching) segments.
+        if (data[0].matching_intersection_y != null && data[0].matching_intersection_x != null) {
+          lastSearchFocus = {
+            lat: data[0].matching_intersection_y,
+            lng: data[0].matching_intersection_x,
+          };
+        }
+        applySearch(
+          base,
+          [{ id: "corner", label: "At this corner", keepIds: cornerIds, available: cornerIds.size > 0, defaultChecked: true }],
+          emptyMsg,
+        );
+        return;
+      }
     }
   } catch {
-    // Swallow — we'll fall through to local. Worst case: no results.
+    // Swallow — fall through to local. Worst case: no results.
   }
 
-  // 2. Local fallback for inputs SAM over-normalizes (e.g. "Mt Vernon" →
-  //    "Mount Vernon" doesn't match CSV's "Mt Vernon St").
-  if (!matches.length) {
-    matches = filterByIntersection(rawQuery);
-  }
-
-  renderMatchesOrError(
-    matches,
-    `No sweeping rules found for the intersection "${rawQuery}". Try the full street names.`,
-  );
+  // Local fallback for inputs SAM over-normalizes (e.g. "Mt Vernon" →
+  // "Mount Vernon" doesn't match CSV's "Mt Vernon St").
+  renderMatchesOrError(filterByIntersection(rawQuery), emptyMsg);
 }
 
-// Numbered-address search: geocode, then narrow to the block(s) governing the
-// address via a graceful ladder (cross-street → neighborhood → whole street).
-// We always return BOTH sides of each matched block — never parity-filter.
-// Falls back to local substring search if geocoding/narrowing finds nothing.
-// See temp/plans/search-narrowing-two-phase.md (Phase 1).
+// filterByIntersection only matches blocks that *terminate* at the corner (one
+// street's name, the other in from/to). A street that isn't subdivided at the
+// corner — e.g. Charles St is one long block Boylston→Nashua that passes through
+// Beacon — has no such block, so only the other street showed up. For any corner
+// street missing from `matches`, add the block that *contains* the corner,
+// chosen by proximity to the SAM intersection point. Dedupe by main_id.
+async function addCornerContainingBlocks(intrName, samBest, matches) {
+  const parts = intrName.split(/\s+(?:and|&)\s+/i).map((s) => s.trim());
+  if (parts.length !== 2) return matches;
+  const point = {
+    lat: samBest.matching_intersection_y,
+    lng: samBest.matching_intersection_x,
+  };
+  if (point.lat == null || point.lng == null) return matches;
+
+  const byId = new Map(matches.map((r) => [r.main_id, r]));
+  for (const street of parts) {
+    if (matches.some((r) => streetNamesMatch(r.st_name, street))) continue;
+    const base = streetData.filter((r) => streetNamesMatch(r.st_name, street));
+    if (!base.length) continue;
+    let rows = [];
+    try {
+      rows = (await narrowByCrossStreetProximity(street, base, point)) || [];
+    } catch {
+      rows = [];
+    }
+    // Proximity needs ≥2 resolvable cross streets to decide; if it can't but the
+    // street is a single unambiguous block, that block contains the corner.
+    if (!rows.length && new Set(base.map((r) => `${r.from}|${r.to}`)).size === 1) {
+      rows = base;
+    }
+    for (const r of rows) byId.set(r.main_id, r);
+  }
+  return [...byId.values()];
+}
+
+// Build the base row set (all results for the nearest road) plus the debug
+// filters for an address-style search across one or more tied geocode matches.
+// Each filter precomputes the main_ids it keeps so toggling stays network-free.
+// The filter that production's ladder would have fired (proximity → nearest
+// intersection → neighborhood) starts checked, so the default view matches the
+// shipped narrowing; unchecking widens toward the whole street.
+async function buildAddressFilterDefs(matches) {
+  const baseById = new Map();
+  const proxIds = new Set();
+  const intxIds = new Set();
+  const nbhdIds = new Set();
+  let proxAvail = false;
+  let intxAvail = false;
+  let nbhdAvail = false;
+
+  for (const m of matches) {
+    const base = streetData.filter((r) => streetNamesMatch(r.st_name, m.street_name));
+    for (const r of base) baseById.set(r.main_id, r);
+    const point = { lat: m.matching_address_y, lng: m.matching_address_x };
+
+    try {
+      const prox = await narrowByCrossStreetProximity(m.street_name, base, point);
+      if (prox?.length) {
+        proxAvail = true;
+        for (const r of prox) proxIds.add(r.main_id);
+      }
+    } catch {
+      /* proximity unavailable */
+    }
+
+    try {
+      const xy = await samXyLookup(m.matching_address_x, m.matching_address_y);
+      const name = xy.nearest_intersection_name;
+      if (name) {
+        const crosses = name
+          .split(/\s*&\s*/)
+          .filter((s) => !streetNamesMatch(s, m.street_name));
+        const touching = base.filter((r) =>
+          crosses.some((cs) => streetNamesMatch(r.from, cs) || streetNamesMatch(r.to, cs)),
+        );
+        if (touching.length) {
+          intxAvail = true;
+          for (const r of touching) intxIds.add(r.main_id);
+        }
+      }
+    } catch {
+      /* xy_lookup unavailable */
+    }
+
+    const nb = (m.planning_neighborhood || "").toLowerCase().trim();
+    if (nb) {
+      const inN = base.filter((r) => {
+        const d = (r.dist_name || "").toLowerCase().trim();
+        return d && d !== "multiple" && (d === nb || d.includes(nb) || nb.includes(d));
+      });
+      if (inN.length) {
+        nbhdAvail = true;
+        for (const r of inN) nbhdIds.add(r.main_id);
+      }
+    }
+  }
+
+  // Match the production ladder's "first rung that fires" as the default.
+  const fired = proxAvail ? "proximity" : intxAvail ? "intersection" : nbhdAvail ? "neighborhood" : null;
+  const filterDefs = [
+    { id: "proximity", label: "Cross-street proximity", keepIds: proxIds, available: proxAvail, defaultChecked: fired === "proximity" },
+    { id: "intersection", label: "Nearest intersection", keepIds: intxIds, available: intxAvail, defaultChecked: fired === "intersection" },
+    { id: "neighborhood", label: "Neighborhood", keepIds: nbhdIds, available: nbhdAvail, defaultChecked: fired === "neighborhood" },
+  ];
+  return { base: [...baseById.values()], filterDefs };
+}
+
+// Numbered-address search: geocode, then expose the narrowing as toggleable
+// debug filters over all rows for the nearest road. We always include BOTH
+// sides of each block — never parity-filter. Falls back to local substring
+// search if geocoding finds nothing. See temp/plans/search-narrowing-two-phase.md.
 async function performAddressSearch(rawQuery) {
+  lastSearchFocus = null; // address results fit to the block, no focal corner
   // Show the pending line up front so an explicit submit doesn't sit on stale
   // results during the network narrow (the broad typing pass already shows it).
   showSearchPending(rawQuery);
-  let matches = [];
+  let ctx = null;
   try {
     const geo = await samGeocode(rawQuery);
     if (geo.length) {
       const topScore = geo[0].match_score;
-      const topMatches = geo.filter(
-        (m) => m.match_score === topScore && topScore > 0,
-      );
-      const blockSets = await Promise.all(topMatches.map(narrowAddressMatch));
-      // Union across tied top matches, dedupe by main_id.
-      const byId = new Map();
-      for (const set of blockSets) {
-        for (const row of set) byId.set(row.main_id, row);
-      }
-      matches = [...byId.values()];
+      const topMatches = geo.filter((m) => m.match_score === topScore && topScore > 0);
+      ctx = await buildAddressFilterDefs(topMatches);
     }
   } catch {
     // Swallow — fall through to local.
-  }
-
-  if (!matches.length) {
-    matches = localStreetSearch(rawQuery.toLowerCase());
   }
 
   // Staleness guard: this path is fired automatically by the auto-narrow
@@ -918,59 +1129,12 @@ async function performAddressSearch(rawQuery) {
   if (document.getElementById("street-search").value.trim() !== rawQuery)
     return;
 
-  renderMatchesOrError(matches, `No sweeping rules found for "${rawQuery}".`);
-}
-
-// Narrow a street location to the CSV block(s) that govern it. Returns every
-// row for the matched block(s) — both even and odd sides (no parity filter).
-// `nearestIntersectionName` and `neighborhood` are optional narrowing signals;
-// each is applied only if it leaves ≥1 row (graceful degradation). Pure — no
-// network — so both the geocode path and the map-pin path can share it.
-function narrowToBlocks(streetName, nearestIntersectionName, neighborhood) {
-  const base = streetData.filter((row) =>
-    streetNamesMatch(row.st_name, streetName),
-  );
-  // A block is one distinct from→to pair; if the street is a single block,
-  // there's nothing to narrow.
-  const distinctBlocks = new Set(base.map((row) => `${row.from}|${row.to}`));
-  if (distinctBlocks.size <= 1) return base;
-
-  // a. Cross-street narrowing via the nearest intersection. Skipped if it
-  //    empties the set (handles the alley-centerline case where the nearest
-  //    intersection isn't a CSV block endpoint — e.g. 122 Commonwealth Ave).
-  if (nearestIntersectionName) {
-    const crossStreets = nearestIntersectionName
-      .split(/\s*&\s*/)
-      .filter((s) => !streetNamesMatch(s, streetName));
-    const touching = base.filter((row) =>
-      crossStreets.some(
-        (cs) => streetNamesMatch(row.from, cs) || streetNamesMatch(row.to, cs),
-      ),
-    );
-    if (touching.length) return touching;
+  const emptyMsg = `No sweeping rules found for "${rawQuery}".`;
+  if (ctx?.base.length) {
+    applySearch(ctx.base, ctx.filterDefs, emptyMsg);
+  } else {
+    applySearch(localStreetSearch(rawQuery.toLowerCase()), [], emptyMsg);
   }
-
-  // b. Neighborhood narrowing (SAM planning_neighborhood ↔ CSV dist_name).
-  //    Containment, not equality: SAM returns a single neighborhood ("Brighton")
-  //    while the CSV often uses a compound district name ("Allston/Brighton"),
-  //    so exact-match silently failed and dropped through to whole-street (this
-  //    is why "1950 Commonwealth" returned all ~19 rows while "122
-  //    Commonwealth" — Back Bay, which equals its CSV district — narrowed to 2).
-  //    "Multiple" is a catch-all district that should never match a specific
-  //    neighborhood. Skipped if it empties the set (names don't always align).
-  if (neighborhood) {
-    const n = neighborhood.toLowerCase().trim();
-    const inNbhd = base.filter((row) => {
-      const d = (row.dist_name || "").toLowerCase().trim();
-      if (!d || d === "multiple") return false;
-      return d === n || d.includes(n) || n.includes(d);
-    });
-    if (inNbhd.length) return inNbhd;
-  }
-
-  // c. Whole street, both sides (still better than the pre-fix ~20 rows when
-  //    neither cross-street nor neighborhood narrowing applied).
-  return base;
 }
 
 // ---- Cross-street proximity narrowing -------------------------------------
@@ -1184,51 +1348,6 @@ async function narrowByCrossStreetProximity(streetName, base, point) {
   );
 }
 
-// Geocode-match variant. Tries cross-street proximity first (tightest), then
-// falls back to the nearest-intersection / neighborhood / whole-street ladder.
-// Skips the network when the street is a single block (nothing to narrow).
-async function narrowAddressMatch(match) {
-  const base = streetData.filter((row) =>
-    streetNamesMatch(row.st_name, match.street_name),
-  );
-  const distinctBlocks = new Set(base.map((row) => `${row.from}|${row.to}`));
-  if (distinctBlocks.size <= 1) return base;
-
-  const point = {
-    lat: match.matching_address_y,
-    lng: match.matching_address_x,
-  };
-
-  // Rung 1: cross-street proximity (tightest; no centerline needed).
-  try {
-    const byProximity = await narrowByCrossStreetProximity(
-      match.street_name,
-      base,
-      point,
-    );
-    if (byProximity?.length) return byProximity;
-  } catch {
-    // fall through to the ladder
-  }
-
-  // Rung 2+: nearest-intersection (xy_lookup) → neighborhood → whole street.
-  let intersectionName = null;
-  try {
-    const xy = await samXyLookup(
-      match.matching_address_x,
-      match.matching_address_y,
-    );
-    intersectionName = xy.nearest_intersection_name || null;
-  } catch {
-    // ignore — narrowToBlocks falls back to neighborhood / whole-street
-  }
-  return narrowToBlocks(
-    match.street_name,
-    intersectionName,
-    match.planning_neighborhood,
-  );
-}
-
 // Given an intersection-shaped string like "Beacon St & Charles St" or
 // "Beacon and Charles", return CSV rows whose st_name matches one side of
 // the intersection AND whose from/to contains the other.
@@ -1267,18 +1386,80 @@ function renderSearchResults() {
   // Pagination controls
   html += renderPagination(totalResults, totalPages);
 
+  // Export-to-CSV (selected rows + query + map location), aligned with the
+  // search-results-review.csv schema so the two can be merged.
+  html += `
+    <div class="export-row">
+      <button id="export-csv-btn" class="export-csv-btn" type="button">Export to CSV</button>
+    </div>`;
+
   resultsContainer.innerHTML = html;
 
   // Add event listeners to alert checkboxes
   resultsContainer.querySelectorAll(".alert-checkbox").forEach((checkbox) => {
     checkbox.addEventListener("change", handleAlertCheckboxChange);
   });
+  document
+    .getElementById("export-csv-btn")
+    ?.addEventListener("click", exportSelectedToCsv);
 
   // Add pagination event listeners
   setupPaginationListeners();
 
   // Show footer as soon as search results appear
   showNotificationFooter();
+}
+
+// Export the search context to CSV: the address-input query, the current map
+// center, and each SELECTED result row (the checked alert boxes). If nothing is
+// selected, exports a single row with just the query + map location. Columns
+// match search-results-review.csv so exports can be merged with it.
+const EXPORT_COLUMNS = [
+  "query", "map_lat", "map_lng", "street", "from", "to", "side", "schedule",
+  "has_map_geometry",
+];
+function csvCell(value) {
+  const s = String(value ?? "");
+  return /[",\n\r]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+}
+function buildExportCsv() {
+  const query = document.getElementById("street-search").value.trim();
+  const c = mapInstance ? mapInstance.getCenter() : null;
+  const mapLat = c ? c.lat.toFixed(6) : "";
+  const mapLng = c ? c.lng.toFixed(6) : "";
+  const selected = currentSearchResults.filter((r) =>
+    pendingSelections.has(r.main_id),
+  );
+
+  const lines = [EXPORT_COLUMNS.join(",")];
+  if (!selected.length) {
+    lines.push([query, mapLat, mapLng, "", "", "", "", "", ""].map(csvCell).join(","));
+  } else {
+    for (const r of selected) {
+      const hasGeom =
+        segmentGeometry?.[segmentBlockKey(r.st_name, r.from, r.to)]?.mapped
+          ? "yes"
+          : "no";
+      lines.push(
+        [query, mapLat, mapLng, r.st_name, r.from, r.to, r.side, formatSchedule(r), hasGeom]
+          .map(csvCell)
+          .join(","),
+      );
+    }
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+function exportSelectedToCsv() {
+  const blob = new Blob([buildExportCsv()], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "search-export.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function renderPagination(totalResults, totalPages) {

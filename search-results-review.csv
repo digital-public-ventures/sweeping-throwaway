@@ -1,0 +1,14 @@
+query,map_lat,map_lng,street,from,to,side,schedule,has_map_geometry
+122 Commonwealth,,,Commonwealth Ave,Arlington St,Massachusetts Ave,Even,"2nd & 4th Mondays, 8 AM - 12 PM",yes
+122 Commonwealth,,,Commonwealth Ave,Arlington St,Massachusetts Ave,Odd,"1st & 3rd Mondays, 8 AM - 12 PM",yes
+1950 Commonwealth,,,Commonwealth Ave,Chestnut Hill Ave,St Thomas Moore Rd,Even Side Median,"2nd & 4th Fridays, 8 AM - 12 PM",yes
+1950 Commonwealth,,,Commonwealth Ave,Lake St,Chestnut Hill Ave,Even,"2nd & 4th Fridays, 8 AM - 12 PM",yes
+1950 Commonwealth,,,Commonwealth Ave,Lake St,Chestnut Hill Ave,Odd,"1st & 3rd Fridays, 8 AM - 12 PM",yes
+130 Newbury,,,Newbury St,Arlington St,Massachusetts Ave,Even,"Every Monday, 12 AM - 7 AM",yes
+130 Newbury,,,Newbury St,Arlington St,Massachusetts Ave,Odd,"Every Tuesday, 12 AM - 7 AM",yes
+268 Foster,,,Foster St,Washington St,Commonwealth Ave,Even,"2nd & 4th Fridays, 8 AM - 12 PM",yes
+268 Foster,,,Foster St,Washington St,Commonwealth Ave,Odd,"1st & 3rd Fridays, 8 AM - 12 PM",yes
+Beacon & Charles,,,Beacon St,Charles St,Arlington St,,"Every Thursday, 2 AM - 7 AM",yes
+Beacon & Charles,,,Beacon St,Joy St,Charles St,Boston Common,"Every Wednesday, 2 AM - 7 AM",yes
+Beacon & Charles,,,Beacon St,Joy St,Charles St,Residential,"Every Thursday, 2 AM - 7 AM",yes
+Beacon & Charles,,,Charles St,Boylston St,Nashua St,Odd,"Every Tuesday, 2 AM - 7 AM",no

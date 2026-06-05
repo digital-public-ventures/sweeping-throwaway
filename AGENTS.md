@@ -53,10 +53,22 @@ Two distinct inputs, different responsibilities. Don't merge them.
   1. SAM `/intersection_lookup` canonicalizes the query (`"Comm Ave & Mass Ave"` → `"Commonwealth Ave & Massachusetts Ave"`).
   2. `filterByIntersection` finds rows where `st_name` matches one street and `from`/`to` matches the other, via `streetNamesMatch` (whole-name, not substring — so "Charles St" doesn't pull in "Charlesgate").
   3. Falls back to splitting the *raw* query locally if SAM yields no rows (catches idioms like `"Mt Vernon"` that SAM over-normalizes to `"Mount Vernon"`).
-- **Numbered address** (`"122 Commonwealth Ave"`, gated on `precise` — explicit submit or the ~400ms auto-narrow debounce) → `performAddressSearch`: geocode → `narrowToBlocks` ladder (cross-street → neighborhood → whole-street, each step skipped if it empties). **Always returns both even and odd sides** of the matched block (no parity filter). Falls back to local substring on empty.
+- **Numbered address** (`"122 Commonwealth Ave"`, gated on `precise` — explicit submit or the ~400ms auto-narrow debounce) → `performAddressSearch`: geocode → `buildAddressFilterDefs` computes a **base** (all rows for the nearest road) plus **debug filters** (cross-street proximity / nearest intersection / neighborhood), each precomputing the `main_id`s it keeps. **Always both even and odd sides** (no parity filter). Falls back to local substring on empty.
 - **Plain street name** (`"7th st"`, `"Beacon"`) → local substring match against `streetData`, normalized via `normalizeStreetName` / `expandSearchQuery`. Runs on the 300ms debounce while typing (browse mode).
 
-The map pin (`onPinMoved`) reuses the same `narrowToBlocks` ladder when it lands on an exact address (gated by `ADDRESS_SNAP_METERS`), else falls back to broad centerline search.
+The map pin (`onPinMoved`) reuses `buildAddressFilterDefs` when it lands on an exact address (gated by `ADDRESS_SNAP_METERS`), else falls back to broad centerline search.
+
+### Base + debug filters (how results are narrowed)
+
+`applySearch(baseRows, filterDefs, emptyMessage)` is the single entry point for every result-producing path. It stores `lastSearch = { baseRows, filterDefs, checked }` and calls `applyDebugFilters`, which sets `currentSearchResults = baseRows ∩ every checked filter` (none checked → all of `baseRows`), then renders the `#debug-filters` panel, the table, and the map polylines.
+
+- The filter the old narrowing ladder *would have fired* (proximity → nearest intersection → neighborhood, first non-empty) starts **checked**, so the default view equals the shipped narrowing. Intersection searches expose a single **"At this corner"** filter (= `filterByIntersection` ∪ `addCornerContainingBlocks`).
+- The `#debug-filters` panel (always visible above "X results found") lets you toggle filters live with no network — each `filterDef` carries a precomputed `keepIds` set. This *replaced* the old `narrowToBlocks` / `narrowAddressMatch` ladder functions (now deleted).
+- `renderMatchesOrError(matches, msg)` is a thin no-filter wrapper around `applySearch` for the plain-street and intersection-local-fallback paths.
+
+### Export to CSV
+
+`exportSelectedToCsv` (button below results) writes the address-input query, the current map center (`map_lat`/`map_lng`), and each **selected** row (checked alert boxes), using the `EXPORT_COLUMNS` schema — identical to `search-results-review.csv` so the two can be merged. `buildExportCsv` is split out for testing.
 
 ### Debug bar (`#map-geocode-input`, inside Show debug panel) → pure SAM probe
 
@@ -97,7 +109,9 @@ For full details (ArcGIS layer schemas, intersection layer 8, address-range fiel
 
 ## Map UI
 
-Leaflet + free OSM tiles. No API key. To switch providers, replace the `L.tileLayer(...)` URL — Leaflet's API is provider-agnostic.
+Leaflet + CARTO "light" basemap tiles (chosen so the colored result polylines read clearly). No API key, but ⚠️ **CARTO's public tiles aren't licensed for production** (commercial → Enterprise license; otherwise a grant) — for a real Boston deploy switch `initMap`'s `L.tileLayer(...)` URL to an Esri/ArcGIS basemap (the city already uses ArcGIS) or another licensed provider. Leaflet's API is provider-agnostic.
+
+**Result segments.** `drawResultSegments(currentSearchResults)` draws one colored polyline per block×side from `data/segment-geometry.json` (precomputed by `scripts/precompute-segment-geometry.mjs`), styled like `commonwealth-ave-segments-map.html` (19-color palette + cycling dashes, even/odd offset to opposite sides). Called on every search and on map-open. A block whose geometry is **unmapped** (`mapped:false` — see the export's `has_map_geometry=no`) is silently skipped.
 
 **Screen-anchored center pin pattern, not a draggable marker.** The pin is a CSS `<div class="center-pin">` (SVG inside) placed at `top: 50%; left: 50%` *inside* the `#map` div, with `pointer-events: none` so drag and click events pass through to the map below. The pin never moves in screen space; the map underneath it does.
 
