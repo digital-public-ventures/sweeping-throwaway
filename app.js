@@ -541,11 +541,18 @@ async function onPinMoved({ lat, lng }) {
     ) {
       input.value = `${addrNum} ${addrStreet}`;
       status.textContent = `Showing results for ${data.nearest_address_full}.`;
-      let blocks = narrowToBlocks(
-        addrStreet,
-        data.nearest_intersection_name,
-        data.planning_neighborhood,
-      );
+      // Route through the SAME precise narrowing the typed-address path uses
+      // (narrowAddressMatch → cross-street proximity + same-side-of-intersection
+      // filter), not the older name/neighborhood ladder. narrowToBlocks ignores
+      // the address point, so on its own the pin path returns the block on the
+      // far side of the nearest intersection. xy_lookup's nearest_address_x/y is
+      // the snapped address point — the same anchor geocode provides.
+      let blocks = await narrowAddressMatch({
+        street_name: addrStreet,
+        matching_address_x: data.nearest_address_x,
+        matching_address_y: data.nearest_address_y,
+        planning_neighborhood: data.planning_neighborhood,
+      });
       if (!blocks.length) blocks = localStreetSearch(addrStreet.toLowerCase());
       renderMatchesOrError(
         blocks,
