@@ -1356,3 +1356,57 @@ body {
     width: 100%;
   }
 }
+
+/* ── Debug filters + CSV export (dev/debug affordances) ─────────────── */
+.debug-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 4px;
+  padding: 8px 10px;
+  border: 1px dashed #b0b8c0;
+  border-radius: 4px;
+  background: #f6f8fa;
+  font-size: 13px;
+}
+.debug-filters:empty {
+  display: none;
+}
+.debug-filters-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+  color: #555;
+}
+.debug-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.debug-filter.disabled {
+  color: #9aa3ad;
+  cursor: not-allowed;
+}
+.debug-filter-count {
+  color: #6b7480;
+  font-variant-numeric: tabular-nums;
+}
+.export-row {
+  margin-top: 12px;
+}
+.export-csv-btn {
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid #1871bf;
+  border-radius: 4px;
+  background: #fff;
+  color: #1871bf;
+  cursor: pointer;
+}
+.export-csv-btn:hover {
+  background: #1871bf;
+  color: #fff;
+}
