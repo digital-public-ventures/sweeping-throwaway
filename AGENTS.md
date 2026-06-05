@@ -9,6 +9,7 @@ Static prototype for the "Notify Boston" street-sweeping alerts feature. No buil
 - `styles.css` — project-specific styles only; generic UI primitives come from Fleet.
 - `styles/fleet.css` — vendored copy of Boston's Fleet pattern library CSS (refresh with `bash styles/refresh-fleet.sh`).
 - `street-sweeping.csv` — source data, 3756 rows of (block × side) sweeping schedules.
+- `sam-cross-street-points.complete-with-aliases.csv` — shipped precomputed SAM cross-street point cache used by address narrowing before live `/intersection_lookup` fallback.
 - `patterns-reference.md` — local reference for the Boston Fleet pattern library (see below).
 - `temp/plans/` — design/migration plans for in-flight work; consult before making related changes. (gitignored scratch)
 - `docs/` — the durable project docs. See the **Docs** section below.
