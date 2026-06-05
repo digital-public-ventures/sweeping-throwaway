@@ -25,6 +25,10 @@ let pendingRemovals = new Set(); // main_ids marked for removal in edit mode
 
 const STORAGE_KEY = "notifyBoston_savedStreets";
 const NOTIFY_PREFS_KEY = "notifyBoston_notifyPrefs";
+const CROSS_STREET_POINTS_CSV = "sam-cross-street-points.complete-with-aliases.csv";
+// Precomputed block -> polyline geometry (scripts/precompute-segment-geometry.mjs).
+// Keyed by `${normStreet}|${normFrom}|${normTo}`; value { mapped, paths:[[[lat,lng]]] }.
+const SEGMENT_GEOMETRY_JSON = "segment-geometry.json";
 
 // ============================================
 // SAM API — Boston Street Address Management
@@ -152,6 +156,8 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSavedStreets();
   loadNotificationPrefs();
   loadStreetData();
+  loadCrossStreetPointCache();
+  loadSegmentGeometry();
   setupEventListeners();
   setupDemoMode();
   setupNotificationFooter();
@@ -318,6 +324,64 @@ function setupEventListeners() {
 // ============================================
 
 let mapInstance = null;
+// Leaflet layer group holding the polylines for the current search's blocks.
+// Created lazily on first draw, then reused/cleared so re-searching swaps lines.
+let resultSegmentLayer = null;
+// Block-key -> { mapped, paths } from SEGMENT_GEOMETRY_JSON. null until loaded;
+// the map degrades gracefully (pin + lookup still work) if the fetch fails.
+let segmentGeometry = null;
+
+// Distinct visual colors for adjacent blocks (from commonwealth-ave-segments-map.html).
+const SEGMENT_COLORS = [
+  "#e6194B", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4",
+  "#f032e6", "#bfef45", "#fabed4", "#469990", "#9A6324", "#800000",
+];
+
+function loadSegmentGeometry() {
+  fetch(SEGMENT_GEOMETRY_JSON)
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
+    .then((data) => {
+      segmentGeometry = data;
+      console.log(`Loaded geometry for ${Object.keys(data).length} blocks`);
+      // If the map is already open on a search, draw now that geometry exists.
+      if (mapInstance) drawResultSegments(currentSearchResults);
+    })
+    .catch((err) => console.warn("Segment geometry unavailable:", err));
+}
+
+const segmentBlockKey = (stName, from, to) =>
+  `${normalizeStreetName(stName || "")}|${normalizeStreetName(from || "")}|${normalizeStreetName(to || "")}`;
+
+// Draw one colored polyline per distinct block in `results` and fit the map to
+// them. Clears any previously drawn lines. No-op until both the map and the
+// geometry data exist. Leaves the center pin and click-lookup behavior intact.
+// Returns true if it drew at least one block (so callers can skip a point-pan).
+function drawResultSegments(results) {
+  if (!mapInstance || !segmentGeometry) return false;
+  if (!resultSegmentLayer) resultSegmentLayer = L.layerGroup().addTo(mapInstance);
+  resultSegmentLayer.clearLayers();
+
+  const drawn = new Set();
+  const bounds = [];
+  let colorIndex = 0;
+  for (const row of results || []) {
+    if (!row.from || !row.to) continue;
+    const key = segmentBlockKey(row.st_name, row.from, row.to);
+    if (drawn.has(key)) continue;
+    drawn.add(key);
+    const rec = segmentGeometry[key];
+    if (!rec?.mapped || !rec.paths.length) continue;
+
+    const color = SEGMENT_COLORS[colorIndex++ % SEGMENT_COLORS.length];
+    const line = L.polyline(rec.paths, { color, weight: 5, opacity: 0.85 });
+    line.bindTooltip(`${row.st_name} — ${row.from} to ${row.to}`, { sticky: true });
+    line.addTo(resultSegmentLayer);
+    for (const path of rec.paths) for (const pt of path) bounds.push(pt);
+  }
+
+  if (bounds.length) mapInstance.fitBounds(bounds, { padding: [30, 30] });
+  return bounds.length > 0;
+}
 
 function toggleMap() {
   const container = document.getElementById("map-container");
@@ -325,11 +389,16 @@ function toggleMap() {
   container.style.display = open ? "none" : "block";
   if (!open) {
     if (!mapInstance) initMap();
-    else setTimeout(() => mapInstance.invalidateSize(), 0);
-    // If there's an active search, pan the map to it. Runs async; we don't
-    // block the open. setView-only on purpose — calling onPinMoved would
-    // overwrite the search input with the SAM centerline name.
-    panMapToSearchInput();
+    // Draw after the container is laid out: the map was display:none until now,
+    // so Leaflet must invalidateSize() first or fitBounds() computes against a
+    // zero-size map and the fit is wrong. Drawing the current search's blocks
+    // fits the map to them; if nothing was drawn — geometry not loaded, or no
+    // mapped blocks — fall back to panning to the search input. setView-only on
+    // purpose: calling onPinMoved would overwrite the input with the SAM name.
+    setTimeout(() => {
+      mapInstance.invalidateSize();
+      if (!drawResultSegments(currentSearchResults)) panMapToSearchInput();
+    }, 0);
     // Bring the map to the top of the viewport so the user doesn't have to
     // scroll manually. Explicit scrollTo (rather than scrollIntoView) because
     // scrollIntoView has alignment quirks that left the map ~90px below the
@@ -371,8 +440,11 @@ function initMap() {
   // scrollWheelZoom off so scrolling the page past the map doesn't accidentally
   // zoom it — users zoom with the +/- control instead.
   mapInstance = L.map("map", { scrollWheelZoom: false }).setView(start, 13);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap",
+  // CARTO "light" basemap (muted greys) so the colored result polylines read
+  // clearly against it — standard OSM tiles are too colorful for thin overlays.
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    maxZoom: 20,
+    attribution: "&copy; OpenStreetMap, &copy; CARTO",
   }).addTo(mapInstance);
 
   // Center pin: a CSS-positioned div anchored to the map frame's visual
@@ -711,6 +783,8 @@ function renderMatchesOrError(matches, emptyMessage) {
   currentSearchResults = matches;
   currentPage = 1;
   renderSearchResults();
+  // Redraw map polylines for the new result set (no-op if the map isn't open).
+  drawResultSegments(matches);
 }
 
 // Intersection search: SAM canonicalizes the user query, then we filter the
@@ -851,13 +925,67 @@ function narrowToBlocks(streetName, nearestIntersectionName, neighborhood) {
 //     cross-street *points* by raw distance needs no centerline at all.
 
 const CROSS_STREET_TIE_FEET = 250; // within this, two blocks are a tie → return both
+const OPPOSITE_SIDE_BUFFER_FEET = 75;
+
+function isTerminalCrossStreet(name) {
+  const normalized = normalizeStreetName(name || "");
+  return (
+    normalized === "dead end" ||
+    normalized === "end of street" ||
+    normalized === "mbta" ||
+    normalized === "sw corridor path" ||
+    normalized === "susi yard" ||
+    normalized === "brookline line" ||
+    normalized.includes("town line")
+  );
+}
 
 // SAM intersection_lookup is network; cache per (street, cross) for the session
 // since a street's cross streets are stable and re-queried across keystrokes.
 const _crossStreetPointCache = new Map();
+let _crossStreetPointCacheLoadPromise = null;
+
+function loadCrossStreetPointCache() {
+  if (_crossStreetPointCacheLoadPromise) return _crossStreetPointCacheLoadPromise;
+
+  _crossStreetPointCacheLoadPromise = new Promise((resolve) => {
+    Papa.parse(CROSS_STREET_POINTS_CSV, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        let loaded = 0;
+        for (const row of results.data) {
+          const key = `${row.normalized_street}|${row.normalized_cross}`;
+          if (!row.normalized_street || !row.normalized_cross) continue;
+          const lng = Number(row.lng);
+          const lat = Number(row.lat);
+          const pt =
+            row.status === "ok" && Number.isFinite(lng) && Number.isFinite(lat)
+              ? { lat, lng }
+              : null;
+          _crossStreetPointCache.set(key, pt);
+          loaded += 1;
+        }
+        console.log(`Loaded ${loaded} precomputed cross-street points`);
+        resolve();
+      },
+      error: (error) => {
+        console.warn(
+          "Could not load precomputed cross-street points; falling back to SAM.",
+          error,
+        );
+        resolve();
+      },
+    });
+  });
+
+  return _crossStreetPointCacheLoadPromise;
+}
 
 async function resolveIntersectionPoint(street, cross) {
   const key = `${normalizeStreetName(street)}|${normalizeStreetName(cross)}`;
+  await loadCrossStreetPointCache();
   if (_crossStreetPointCache.has(key)) return _crossStreetPointCache.get(key);
   let pt = null;
   try {
@@ -883,13 +1011,32 @@ function distanceFeet(a, b) {
   return Math.hypot(dLat, dLng);
 }
 
+function isOnAddressSideOfIntersection(addressPoint, intersectionPoint, point) {
+  const addressDist = distanceFeet(addressPoint, intersectionPoint);
+  if (addressDist < OPPOSITE_SIDE_BUFFER_FEET) return true;
+
+  const FT_PER_DEG_LAT = 364567;
+  const cosLat = Math.cos((intersectionPoint.lat * Math.PI) / 180);
+  const toXY = (p) => ({
+    x: (p.lng - intersectionPoint.lng) * FT_PER_DEG_LAT * cosLat,
+    y: (p.lat - intersectionPoint.lat) * FT_PER_DEG_LAT,
+  });
+  const address = toXY(addressPoint);
+  const candidate = toXY(point);
+  const axisLength = Math.hypot(address.x, address.y);
+  if (!axisLength) return true;
+  const projection =
+    (candidate.x * address.x + candidate.y * address.y) / axisLength;
+  return projection >= -OPPOSITE_SIDE_BUFFER_FEET;
+}
+
 // Returns the CSV rows for the block(s) bounding `point`, or null if the cross
 // streets can't be placed (caller then falls back to the ladder). Always both
 // sides — collects every row sharing the chosen block's from/to.
 async function narrowByCrossStreetProximity(streetName, base, point) {
   const crosses = [
     ...new Set(base.flatMap((r) => [r.from, r.to]).filter(Boolean)),
-  ].filter((c) => !/dead end/i.test(c));
+  ].filter((c) => !isTerminalCrossStreet(c));
   const resolved = await Promise.all(
     crosses.map(async (name) => ({
       name,
@@ -898,8 +1045,12 @@ async function narrowByCrossStreetProximity(streetName, base, point) {
   );
 
   const dist = new Map();
+  const points = new Map();
   for (const { name, pt } of resolved)
-    if (pt) dist.set(name, distanceFeet(point, pt));
+    if (pt) {
+      dist.set(name, distanceFeet(point, pt));
+      points.set(name, pt);
+    }
   if (dist.size < 2) return null;
 
   // Nearest cross street to the address.
@@ -915,18 +1066,49 @@ async function narrowByCrossStreetProximity(streetName, base, point) {
       return { from, to };
     },
   );
-  const candidates = distinct
+  let candidates = distinct
     .map((blk) => {
       const onFrom = streetNamesMatch(blk.from, nearest);
       const onTo = streetNamesMatch(blk.to, nearest);
       if (!onFrom && !onTo) return null;
       const other = onFrom ? blk.to : blk.from;
       const otherDist = dist.get(other);
-      return otherDist == null ? null : { blk, otherDist };
+      if (otherDist != null)
+        return { blk, other, otherDist, otherPoint: points.get(other) };
+      if (!isTerminalCrossStreet(other)) return null;
+
+      const rows = base.filter(
+        (row) => row.from === blk.from && row.to === blk.to,
+      );
+      const length = Math.min(
+        ...rows
+          .map((row) => Number(row.miles))
+          .filter((value) => Number.isFinite(value) && value > 0),
+      );
+      const lengthFeet = Number.isFinite(length) ? length * 5280 : 0;
+      return {
+        blk,
+        // For true terminal/boundary endpoints there is no intersection point
+        // to fetch. Treat the block as one-ended and use CSV length so the
+        // shortest overlapping terminal segment wins.
+        otherDist: ranked[0][1] + lengthFeet,
+        terminal: true,
+      };
     })
     .filter(Boolean)
     .sort((a, b) => a.otherDist - b.otherDist);
   if (!candidates.length) return null;
+
+  const nearestPoint = points.get(nearest);
+  if (nearestPoint) {
+    const sameSideCandidates = candidates.filter(
+      (candidate) =>
+        candidate.terminal ||
+        !candidate.otherPoint ||
+        isOnAddressSideOfIntersection(point, nearestPoint, candidate.otherPoint),
+    );
+    if (sameSideCandidates.length) candidates = sameSideCandidates;
+  }
 
   // Tie window: an address sitting on top of a major intersection may have two
   // adjacent blocks nearly equidistant (e.g. 1950 Commonwealth at Chestnut Hill
