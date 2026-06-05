@@ -331,11 +331,43 @@ let resultSegmentLayer = null;
 // the map degrades gracefully (pin + lookup still work) if the fetch fails.
 let segmentGeometry = null;
 
-// Distinct visual colors for adjacent blocks (from commonwealth-ave-segments-map.html).
+// Distinct line colors + dash patterns, matching commonwealth-ave-segments-map.html.
+// Each drawn segment cycles to the next color (and dash) so adjacent / overlapping
+// lines stay clearly differentiated.
 const SEGMENT_COLORS = [
-  "#e6194B", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4",
-  "#f032e6", "#bfef45", "#fabed4", "#469990", "#9A6324", "#800000",
+  "#e6194B", "#ffe119", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4",
+  "#f032e6", "#bfef45", "#fa8072", "#469990", "#9A6324", "#800000", "#808000",
+  "#000075", "#e67e22", "#1abc9c", "#c0392b", "#2c3e50",
 ];
+const SEGMENT_DASHES = ["", "3,8", "10,8", "14,6,3,6", "6,6"];
+
+// Half the visual gap (meters) between a block's even- and odd-side lines. Our
+// geometry is a single centerline per block, so we offset even/odd to opposite
+// sides to mimic the reference's parallel per-side lines. Sub-pixel (invisible)
+// when zoomed out to a whole street; the lines simply merge.
+const SEGMENT_SIDE_OFFSET_M = 7;
+
+// Shift every vertex of a [lat,lng] path perpendicular to its local direction by
+// `meters` (signed). Used to separate even/odd lines that share a centerline.
+function offsetLatLngPath(path, meters) {
+  if (!meters || path.length < 2) return path;
+  const n = path.length;
+  return path.map(([lat, lng], i) => {
+    const [pLat, pLng] = path[Math.max(0, i - 1)];
+    const [nLat, nLng] = path[Math.min(n - 1, i + 1)];
+    const cos = Math.cos((lat * Math.PI) / 180) || 1;
+    // Local travel direction in a locally-planar frame (east = lng·cos, north = lat).
+    let dx = (nLng - pLng) * cos;
+    let dy = nLat - pLat;
+    const len = Math.hypot(dx, dy) || 1;
+    dx /= len;
+    dy /= len;
+    // Left-perpendicular of travel: (-dy, dx).
+    const dLat = (meters / 111320) * dx;
+    const dLng = (meters / (111320 * cos)) * -dy;
+    return [lat + dLat, lng + dLng];
+  });
+}
 
 function loadSegmentGeometry() {
   fetch(SEGMENT_GEOMETRY_JSON)
@@ -352,10 +384,20 @@ function loadSegmentGeometry() {
 const segmentBlockKey = (stName, from, to) =>
   `${normalizeStreetName(stName || "")}|${normalizeStreetName(from || "")}|${normalizeStreetName(to || "")}`;
 
-// Draw one colored polyline per distinct block in `results` and fit the map to
-// them. Clears any previously drawn lines. No-op until both the map and the
-// geometry data exist. Leaves the center pin and click-lookup behavior intact.
-// Returns true if it drew at least one block (so callers can skip a point-pan).
+// Sign of the perpendicular offset for a side: even one way, odd the other,
+// median/unknown stays on the centerline. Matches the reference's per-side lines.
+function sideOffsetSign(side) {
+  const s = (side || "").toLowerCase();
+  if (s.includes("even")) return 1;
+  if (s.includes("odd")) return -1;
+  return 0;
+}
+
+// Draw one colored polyline per distinct block×side in `results` and fit the map
+// to them. Each line gets a distinct color + dash (cycled) so every segment is
+// clearly differentiated, and even/odd are offset to opposite sides of the
+// centerline. Clears previous lines. No-op until the map and geometry both
+// exist. Returns true if it drew at least one segment (callers skip a point-pan).
 function drawResultSegments(results) {
   if (!mapInstance || !segmentGeometry) return false;
   if (!resultSegmentLayer) resultSegmentLayer = L.layerGroup().addTo(mapInstance);
@@ -363,20 +405,31 @@ function drawResultSegments(results) {
 
   const drawn = new Set();
   const bounds = [];
-  let colorIndex = 0;
+  let i = 0;
   for (const row of results || []) {
     if (!row.from || !row.to) continue;
-    const key = segmentBlockKey(row.st_name, row.from, row.to);
+    const blockKey = segmentBlockKey(row.st_name, row.from, row.to);
+    // One line per side per block — multiple schedule rows for the same side
+    // share geometry, so drawing them again would just stack identical lines.
+    const key = `${blockKey}|${(row.side || "").toLowerCase()}`;
     if (drawn.has(key)) continue;
-    drawn.add(key);
-    const rec = segmentGeometry[key];
+    const rec = segmentGeometry[blockKey];
     if (!rec?.mapped || !rec.paths.length) continue;
+    drawn.add(key);
 
-    const color = SEGMENT_COLORS[colorIndex++ % SEGMENT_COLORS.length];
-    const line = L.polyline(rec.paths, { color, weight: 5, opacity: 0.85 });
-    line.bindTooltip(`${row.st_name} — ${row.from} to ${row.to}`, { sticky: true });
+    const color = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
+    const dashArray = SEGMENT_DASHES[i % SEGMENT_DASHES.length] || null;
+    i += 1;
+    const offset = sideOffsetSign(row.side) * SEGMENT_SIDE_OFFSET_M;
+    const paths = rec.paths.map((path) => offsetLatLngPath(path, offset));
+
+    const line = L.polyline(paths, { color, weight: 5, opacity: 0.9, dashArray });
+    line.bindTooltip(
+      `${row.st_name} (${row.from} → ${row.to}) — ${formatSideText(row.side)} · ${formatSchedule(row)}`,
+      { sticky: true },
+    );
     line.addTo(resultSegmentLayer);
-    for (const path of rec.paths) for (const pt of path) bounds.push(pt);
+    for (const path of paths) for (const pt of path) bounds.push(pt);
   }
 
   if (bounds.length) mapInstance.fitBounds(bounds, { padding: [30, 30] });
