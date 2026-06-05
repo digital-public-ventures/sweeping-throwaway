@@ -145,7 +145,7 @@ const MAX_ENDPOINT_SNAP_FT = 800; // endpoint (geocoded corner) must be near the
 
 const nodeKey = ([lng, lat]) => `${lng.toFixed(NODE_PRECISION)},${lat.toFixed(NODE_PRECISION)}`;
 
-function buildGraph(segments, lat0) {
+function buildGraph(segments, lat0, bridgeFeet = 0) {
   const nodes = new Map(); // key -> { lngLat, edges: [{ to, weight, path }] }
   const ensure = (pt) => {
     const key = nodeKey(pt);
@@ -163,6 +163,27 @@ function buildGraph(segments, lat0) {
       nodes.get(bKey).edges.push({ to: aKey, weight, path: [...path].reverse() });
     }
   }
+
+  // Optional gap-bridging: many street centerlines are digitized in disconnected
+  // pieces (carriageway splits, gaps at big intersections) that block the walk
+  // between a block's endpoints. Add straight "bridge" edges between node pairs
+  // within `bridgeFeet`, weighted by distance so real segments are still
+  // preferred. The 2-point bridge path becomes a short connector line.
+  if (bridgeFeet > 0) {
+    const entries = [...nodes.entries()];
+    const existing = (a, b) => nodes.get(a).edges.some((e) => e.to === b);
+    for (let i = 0; i < entries.length; i += 1) {
+      for (let j = i + 1; j < entries.length; j += 1) {
+        const [aKey, a] = entries[i];
+        const [bKey, b] = entries[j];
+        if (existing(aKey, bKey)) continue;
+        const d = distFeet(a.lngLat, b.lngLat, lat0);
+        if (d > bridgeFeet) continue;
+        nodes.get(aKey).edges.push({ to: bKey, weight: d, path: [a.lngLat, b.lngLat], bridge: true });
+        nodes.get(bKey).edges.push({ to: aKey, weight: d, path: [b.lngLat, a.lngLat], bridge: true });
+      }
+    }
+  }
   return nodes;
 }
 
@@ -177,7 +198,8 @@ function nearestNode(nodes, point, lat0) {
 }
 
 // Dijkstra (small graphs; linear-scan frontier is plenty). Returns the ordered
-// list of edge geometries from startKey to endKey, or null if unreachable.
+// list of edges from startKey to endKey (each { path, bridge }), or null if
+// unreachable.
 function shortestPathEdges(nodes, startKey, endKey) {
   const dist = new Map([[startKey, 0]]);
   const prev = new Map(); // key -> { from, edge }
@@ -205,26 +227,44 @@ function shortestPathEdges(nodes, startKey, endKey) {
   while (key !== startKey) {
     const step = prev.get(key);
     if (!step) return null;
-    edges.unshift(step.edge.path);
+    edges.unshift(step.edge);
     key = step.from;
   }
   return edges;
 }
 
-// Given a street's ArcGIS segments and a block's two endpoints, return the
-// Leaflet [lat,lng] paths tracing the block. Empty if no walk connects them.
-function selectBlockPaths(segments, pFrom, pTo) {
-  if (!segments.length) return [];
+// Given a street's ArcGIS segments and a block's two endpoints, return
+// { paths, bridged }: the Leaflet [lat,lng] paths tracing the block, and whether
+// the walk needed gap-bridging. Bridging is a FALLBACK: we walk the real
+// centerline first and only retry with synthetic bridge edges if that fails, so
+// already-connected blocks keep their pristine geometry untouched. `bridged` is
+// therefore true only for blocks that are *recovered* by bridging.
+function selectBlockPaths(segments, pFrom, pTo, bridgeFeet = 0) {
+  const empty = { paths: [], bridged: false };
+  if (!segments.length) return empty;
   const lat0 = (pFrom[1] + pTo[1]) / 2;
-  const nodes = buildGraph(segments, lat0);
-  if (!nodes.size) return [];
-  const start = nearestNode(nodes, pFrom, lat0);
-  const end = nearestNode(nodes, pTo, lat0);
-  if (start.dist > MAX_ENDPOINT_SNAP_FT || end.dist > MAX_ENDPOINT_SNAP_FT) return [];
-  if (start.key === end.key) return [];
-  const edges = shortestPathEdges(nodes, start.key, end.key);
-  if (!edges) return [];
-  return edges.map((path) => path.map(([lng, lat]) => [lat, lng]));
+
+  const walk = (bf) => {
+    const nodes = buildGraph(segments, lat0, bf);
+    if (!nodes.size) return null;
+    const start = nearestNode(nodes, pFrom, lat0);
+    const end = nearestNode(nodes, pTo, lat0);
+    if (start.dist > MAX_ENDPOINT_SNAP_FT || end.dist > MAX_ENDPOINT_SNAP_FT) return null;
+    if (start.key === end.key) return null;
+    return shortestPathEdges(nodes, start.key, end.key);
+  };
+
+  let edges = walk(0);
+  let bridged = false;
+  if (!edges && bridgeFeet > 0) {
+    edges = walk(bridgeFeet);
+    bridged = Boolean(edges);
+  }
+  if (!edges) return empty;
+  return {
+    paths: edges.map((e) => e.path.map(([lng, lat]) => [lat, lng])),
+    bridged,
+  };
 }
 
 // ---------- ArcGIS fetch (cached per street) ----------
@@ -283,6 +323,7 @@ function parseArgs() {
     rpm: 60,
     street: null,
     limitStreets: null,
+    bridgeFeet: 150,
   };
   for (let i = 0; i < args.length; i += 1) {
     const a = args[i];
@@ -293,6 +334,7 @@ function parseArgs() {
     else if (a === "--rpm") opts.rpm = Number(args[++i]);
     else if (a === "--street") opts.street = args[++i];
     else if (a === "--limit-streets") opts.limitStreets = Number(args[++i]);
+    else if (a === "--bridge") opts.bridgeFeet = Number(args[++i]);
     else throw new Error(`Unknown argument: ${a}`);
   }
   return opts;
@@ -342,6 +384,7 @@ async function main() {
   let mapped = 0;
   let unmapped = 0;
   let noEndpoint = 0;
+  let bridgedCount = 0;
 
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
@@ -363,17 +406,20 @@ async function main() {
       const pFrom = points.get(`${normStreet}|${normalizeStreetName(blk.from)}`);
       const pTo = points.get(`${normStreet}|${normalizeStreetName(blk.to)}`);
       if (!pFrom || !pTo) {
-        result[key] = { mapped: false, paths: [] };
+        result[key] = { mapped: false, bridged: false, paths: [] };
         if (!pFrom && !pTo) noEndpoint += 1;
         unmapped += 1;
         continue;
       }
-      const paths = segments.length ? selectBlockPaths(segments, pFrom, pTo) : [];
-      if (paths.length) {
-        result[key] = { mapped: true, paths };
+      const sel = segments.length
+        ? selectBlockPaths(segments, pFrom, pTo, opts.bridgeFeet)
+        : { paths: [], bridged: false };
+      if (sel.paths.length) {
+        result[key] = { mapped: true, bridged: sel.bridged, paths: sel.paths };
         mapped += 1;
+        if (sel.bridged) bridgedCount += 1;
       } else {
-        result[key] = { mapped: false, paths: [] };
+        result[key] = { mapped: false, bridged: false, paths: [] };
         unmapped += 1;
       }
     }
@@ -391,7 +437,7 @@ async function main() {
 
   fs.writeFileSync(opts.out, JSON.stringify(result));
   console.log("\nDone");
-  console.log(`  blocks mapped   : ${mapped}`);
+  console.log(`  blocks mapped   : ${mapped} (bridged: ${bridgedCount})`);
   console.log(`  blocks unmapped : ${unmapped} (missing endpoint: ${noEndpoint})`);
   console.log(`  wrote ${Object.keys(result).length} block keys -> ${opts.out}`);
 }
