@@ -110,7 +110,7 @@ function normalizeStreetName(str) {
 function parseArgs() {
   const args = process.argv.slice(2);
   const opts = {
-    csv: path.join(REPO, "street-sweeping.csv"),
+    csv: path.join(REPO, "data", "street-sweeping.csv"),
     out: path.join(REPO, "temp", "sam-cross-street-points.csv"),
     log: null,
     rpm: 50,

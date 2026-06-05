@@ -5,8 +5,8 @@
  * search returns (see commonwealth-ave-segments-map.html for the visual target).
  *
  * Strategy (decided in temp/plans/map-result-segments.md):
- *   1. street-sweeping.csv  -> distinct blocks, grouped by street.
- *   2. sam-cross-street-points.complete-with-aliases.csv -> each block's two
+ *   1. data/street-sweeping.csv  -> distinct blocks, grouped by street.
+ *   2. data/sam-cross-street-points.complete-with-aliases.csv -> each block's two
  *      cross-street endpoint coordinates (already geocoded; reused as anchors).
  *   3. ArcGIS layer 3 (SAM_Boston_Segments_tbl) -> all polyline segments for a
  *      street, fetched ONCE per street and cached. Endpoint + field reference:
@@ -16,14 +16,14 @@
  *      laterally close). This handles divided boulevards (multiple carriageways
  *      per block) and disambiguates same-named streets across the city.
  *
- * Output: segment-geometry.json, keyed by `${normStreet}|${normFrom}|${normTo}`,
+ * Output: data/segment-geometry.json, keyed by `${normStreet}|${normFrom}|${normTo}`,
  * value `{ mapped: bool, paths: [[[lat,lng],...], ...] }` (Leaflet lat,lng order).
  *
  * Usage:
  *   node scripts/precompute-segment-geometry.mjs
  *   node scripts/precompute-segment-geometry.mjs --street "Commonwealth Ave"
  *   node scripts/precompute-segment-geometry.mjs --limit-streets 20
- *   node scripts/precompute-segment-geometry.mjs --rpm 60 --out segment-geometry.json
+ *   node scripts/precompute-segment-geometry.mjs --rpm 60 --out data/segment-geometry.json
  */
 
 import fs from "node:fs";
@@ -276,9 +276,9 @@ async function fetchStreetSegments(token, cacheDir) {
 function parseArgs() {
   const args = process.argv.slice(2);
   const opts = {
-    csv: path.join(REPO, "street-sweeping.csv"),
-    points: path.join(REPO, "sam-cross-street-points.complete-with-aliases.csv"),
-    out: path.join(REPO, "segment-geometry.json"),
+    csv: path.join(REPO, "data", "street-sweeping.csv"),
+    points: path.join(REPO, "data", "sam-cross-street-points.complete-with-aliases.csv"),
+    out: path.join(REPO, "data", "segment-geometry.json"),
     cacheDir: path.join(REPO, "temp", "arcgis-segment-cache"),
     rpm: 60,
     street: null,

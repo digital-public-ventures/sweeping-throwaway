@@ -25,10 +25,11 @@ let pendingRemovals = new Set(); // main_ids marked for removal in edit mode
 
 const STORAGE_KEY = "notifyBoston_savedStreets";
 const NOTIFY_PREFS_KEY = "notifyBoston_notifyPrefs";
-const CROSS_STREET_POINTS_CSV = "sam-cross-street-points.complete-with-aliases.csv";
+const CROSS_STREET_POINTS_CSV =
+  "data/sam-cross-street-points.complete-with-aliases.csv";
 // Precomputed block -> polyline geometry (scripts/precompute-segment-geometry.mjs).
 // Keyed by `${normStreet}|${normFrom}|${normTo}`; value { mapped, paths:[[[lat,lng]]] }.
-const SEGMENT_GEOMETRY_JSON = "segment-geometry.json";
+const SEGMENT_GEOMETRY_JSON = "data/segment-geometry.json";
 
 // ============================================
 // SAM API — Boston Street Address Management
@@ -168,7 +169,7 @@ function loadStreetData() {
   const resultsContainer = document.getElementById("search-results");
   resultsContainer.innerHTML = '<p class="loading">Loading street data</p>';
 
-  Papa.parse("street-sweeping.csv", {
+  Papa.parse("data/street-sweeping.csv", {
     download: true,
     header: true,
     skipEmptyLines: true,

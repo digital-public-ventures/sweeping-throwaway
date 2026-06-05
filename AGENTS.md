@@ -8,8 +8,11 @@ Static prototype for the "Notify Boston" street-sweeping alerts feature. No buil
 - `app.js` — all behavior. CSV load via PapaParse, search (local + SAM hybrid for intersections), Leaflet map with screen-anchored pin, tab switching, localStorage for saved streets.
 - `styles.css` — project-specific styles only; generic UI primitives come from Fleet.
 - `styles/fleet.css` — vendored copy of Boston's Fleet pattern library CSS (refresh with `bash styles/refresh-fleet.sh`).
-- `street-sweeping.csv` — source data, 3756 rows of (block × side) sweeping schedules.
-- `sam-cross-street-points.complete-with-aliases.csv` — shipped precomputed SAM cross-street point cache used by address narrowing before live `/intersection_lookup` fallback.
+- `data/` — runtime data files the app `fetch`es and the `scripts/` read/write:
+  - `data/street-sweeping.csv` — source data, 3756 rows of (block × side) sweeping schedules.
+  - `data/sam-cross-street-points.complete-with-aliases.csv` — shipped precomputed SAM cross-street point cache used by address narrowing before live `/intersection_lookup` fallback.
+  - `data/segment-geometry.json` — precomputed block→polyline geometry (`scripts/precompute-segment-geometry.mjs`) drawn on the map for search results.
+- `scripts/` — Node ESM tooling (SAM intersection precompute + recovery pipeline, segment-geometry precompute, search-timing). Read `data/`, write `data/` or gitignored `temp/`.
 - `patterns-reference.md` — local reference for the Boston Fleet pattern library (see below).
 - `temp/plans/` — design/migration plans for in-flight work; consult before making related changes. (gitignored scratch)
 - `docs/` — the durable project docs. See the **Docs** section below.
