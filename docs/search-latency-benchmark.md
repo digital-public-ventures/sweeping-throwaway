@@ -6,7 +6,7 @@ without the DOM layer. The script clones the current app pipeline:
 1. `/geocode` the address.
 2. For each top geocode match, narrow by cross-street proximity.
 3. Resolve each distinct CSV `from`/`to` cross street from the shipped
-   `sam-cross-street-points.complete-with-aliases.csv` cache, with the same
+   `data/sam-cross-street-points.complete-with-aliases.csv` cache, with the same
    normalized cache key the browser uses. Fall back to `/intersection_lookup`
    only for keys missing from the shipped CSV.
 4. Fall back to `xy_lookup` + neighborhood + whole street only if proximity
@@ -59,7 +59,7 @@ Aggregate: 2,091 ms total, 697 ms average, 3 SAM calls.
 ## Latency reduction ideas
 
 1. ✅ Precompute and ship a static cross-street point table for every
-   `(street, from/to)` pair in `street-sweeping.csv`. This removes the
+   `(street, from/to)` pair in `data/street-sweeping.csv`. This removes the
    cold-start fan-out entirely; the address path is now one `/geocode` call plus
    local math for covered cross streets. The shipped asset is
    `sam-cross-street-points.complete-with-aliases.csv`.
@@ -82,7 +82,7 @@ Aggregate: 2,091 ms total, 697 ms average, 3 SAM calls.
 ## Precomputed table size
 
 Assuming the precomputed table only covers streets that appear in
-`street-sweeping.csv`, the current runtime shape needs one
+`data/street-sweeping.csv`, the current runtime shape needs one
 `/intersection_lookup` call per distinct normalized `(street, cross street)`
 pair, excluding `Dead End` endpoints.
 
@@ -218,7 +218,7 @@ No-match recovery artifacts:
 | `scripts/audit-sam-no-match-candidates.mjs` | Rate-limited audit of top candidate cross-streets for unresolved rows. |
 | `temp/archive/sam-precompute-2026-06-04/sam-cross-street-points.alias-fills.csv` | Per-row no-match recovery/classification output. |
 | `temp/archive/sam-precompute-2026-06-04/sam-cross-street-points.no-match-candidates.csv` | Candidate audit output for remaining no-alias rows. |
-| `sam-cross-street-points.complete-with-aliases.csv` | Root-level shipped app cache with error and alias fills. |
+| `data/sam-cross-street-points.complete-with-aliases.csv` | Shipped app cache (in `data/`) with error and alias fills. |
 
 Current merged status after deterministic error + no-match recovery:
 

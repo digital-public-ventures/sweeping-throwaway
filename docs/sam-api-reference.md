@@ -150,4 +150,4 @@ returnGeometry=false&outSR=4326&f=json"
 
 The narrowing ladder in `app.js` (`narrowToBlocks`) uses, in order: nearest-intersection cross-street → `planning_neighborhood` ↔ CSV `dist_name` → whole street. It never parity-filters (both even/odd sides are always returned). The ArcGIS layer-3/layer-8 segment approach above is held in reserve for Phase 2 (exact-segment pinning), gated behind a feature flag, because the CSV's block granularity is uneven and a precise segment often doesn't map to a coarse CSV block.
 
-> Caveat: `losta` / `hista` in `street-sweeping.csv` are NOT address ranges — they're linear-reference stations (cumulative distance along the centerline). Don't map a house number to a block via them. The ArcGIS layer-3 `L_F_ADD`/`R_F_ADD` fields *are* real address ranges.
+> Caveat: `losta` / `hista` in `data/street-sweeping.csv` are NOT address ranges — they're linear-reference stations (cumulative distance along the centerline). Don't map a house number to a block via them. The ArcGIS layer-3 `L_F_ADD`/`R_F_ADD` fields *are* real address ranges.

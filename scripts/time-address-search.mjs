@@ -23,6 +23,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(__dirname, "..");
 const CROSS_STREET_POINTS_CSV = path.join(
   REPO,
+  "data",
   "sam-cross-street-points.complete-with-aliases.csv",
 );
 
@@ -68,7 +69,7 @@ function readCsv(filePath) {
 }
 
 function loadStreetData() {
-  streetData = readCsv(path.join(REPO, "street-sweeping.csv")).filter(
+  streetData = readCsv(path.join(REPO, "data", "street-sweeping.csv")).filter(
     (row) => row.main_id && row.st_name,
   );
 }
