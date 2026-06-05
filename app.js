@@ -925,7 +925,7 @@ function renderDebugFilters() {
   const bridgedBox = `
       <label class="debug-filter">
         <input type="checkbox" id="toggle-bridged"${showBridgedSegments ? " checked" : ""}>
-        Bridged geometry
+        fix broken segments
         <span class="debug-filter-count">${bridgedCount}</span>
       </label>`;
   el.innerHTML = `<span class="debug-filters-title">Debug filters</span>${boxes}${bridgedBox}`;
@@ -954,7 +954,7 @@ async function performIntersectionSearch(rawQuery) {
 
   // SAM /intersection_lookup canonicalizes "Beacon & Charles" → "Beacon St &
   // Charles St" and gives the corner point. Base = all rows for both streets;
-  // the "At this corner" filter narrows to the blocks at/through the corner.
+  // the "only nearest sections" filter narrows to the blocks at/through the corner.
   try {
     const data = await samIntersectionLookup(rawQuery);
     if (data.length) {
@@ -979,7 +979,7 @@ async function performIntersectionSearch(rawQuery) {
         }
         applySearch(
           base,
-          [{ id: "corner", label: "At this corner", keepIds: cornerIds, available: cornerIds.size > 0, defaultChecked: true }],
+          [{ id: "corner", label: "only nearest sections", keepIds: cornerIds, available: cornerIds.size > 0, defaultChecked: true }],
           emptyMsg,
         );
         return;
