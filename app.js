@@ -1386,22 +1386,12 @@ function renderSearchResults() {
   // Pagination controls
   html += renderPagination(totalResults, totalPages);
 
-  // Export-to-CSV (selected rows + query + map location), aligned with the
-  // search-results-review.csv schema so the two can be merged.
-  html += `
-    <div class="export-row">
-      <button id="export-csv-btn" class="export-csv-btn" type="button">Export to CSV</button>
-    </div>`;
-
   resultsContainer.innerHTML = html;
 
   // Add event listeners to alert checkboxes
   resultsContainer.querySelectorAll(".alert-checkbox").forEach((checkbox) => {
     checkbox.addEventListener("change", handleAlertCheckboxChange);
   });
-  document
-    .getElementById("export-csv-btn")
-    ?.addEventListener("click", exportSelectedToCsv);
 
   // Add pagination event listeners
   setupPaginationListeners();
@@ -1598,6 +1588,10 @@ function setupNotificationFooter() {
     if (pendingSelections.size === 0) return;
     showSignupModal();
   });
+
+  document
+    .getElementById("export-csv-btn")
+    ?.addEventListener("click", exportSelectedToCsv);
 }
 
 function showNotificationFooter() {

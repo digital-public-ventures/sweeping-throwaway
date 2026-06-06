@@ -596,6 +596,12 @@ body {
   color: #d43d33;
 }
 
+.notify-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .notify-save-btn {
   padding: 0.625rem 1.25rem;
   background-color: var(--teal-accent);
@@ -1324,8 +1330,8 @@ body {
     justify-content: space-between;
   }
 
-  .notify-save-btn {
-    width: 100%;
+  .notify-footer-actions button {
+    flex: 1;
   }
 
   .pagination-container {
@@ -1394,17 +1400,17 @@ body {
   color: #6b7480;
   font-variant-numeric: tabular-nums;
 }
-.export-row {
-  margin-top: 12px;
-}
 .export-csv-btn {
-  font-size: 13px;
-  padding: 6px 12px;
+  font-size: 0.8125rem;
+  padding: 0.625rem 1rem;
   border: 1px solid #1871bf;
   border-radius: 4px;
   background: #fff;
   color: #1871bf;
+  font-family: "Montserrat", sans-serif;
+  font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 .export-csv-btn:hover {
   background: #1871bf;
