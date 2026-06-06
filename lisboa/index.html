@@ -152,6 +152,17 @@
       .info-link:hover {
         text-decoration: underline;
       }
+      .geo-status {
+        font-size: 0.78rem;
+        opacity: 0.8;
+        font-style: italic;
+        white-space: nowrap;
+      }
+      .info-src {
+        margin-top: 12px;
+        font-size: 0.72rem;
+        color: #8a8a8a;
+      }
 
       @media (max-width: 640px) {
         #info {
@@ -177,7 +188,8 @@
           target="_blank"
           rel="noopener"
           >“How to eat like a local in Lisbon”</a
-        >. Tap a pin for details. (Pin locations are approximate.)
+        >. Tap a pin for details.
+        <span id="geo-status" class="geo-status"></span>
       </p>
     </header>
 
@@ -416,6 +428,17 @@
         );
       }
 
+      let activeRestaurant = null;
+
+      function locationLine(r) {
+        if (r.coordSrc === "geocoded") {
+          return `<p class="info-src">📍 Exact location via OpenStreetMap${
+            r.coordProvider ? " (" + escapeHtml(r.coordProvider) + ")" : ""
+          }</p>`;
+        }
+        return '<p class="info-src">📍 Approximate location (placed by address / neighbourhood)</p>';
+      }
+
       function showInfo(r) {
         const stalls = r.stalls
           ? `<div class="info-label">Featured stalls</div>
@@ -439,29 +462,179 @@
           ${stalls}
           <a class="info-link" href="${r.url}" target="_blank" rel="noopener"
             >View on Time Out →</a
-          >`;
+          >
+          ${locationLine(r)}`;
         infoClose.style.display = "block";
+        activeRestaurant = r;
       }
 
       function clearInfo() {
         infoBody.innerHTML =
           '<p class="info-empty">Tap any pin to see what it\'s known for, where it is, and a link to its Time Out page.</p>';
         infoClose.style.display = "none";
+        activeRestaurant = null;
       }
 
       infoClose.addEventListener("click", clearInfo);
 
-      const markers = RESTAURANTS.map((r) => {
-        const marker = L.marker([r.lat, r.lng], { title: r.name }).addTo(map);
-        marker.on("click", () => showInfo(r));
-        return marker;
+      // Render markers immediately at the approximate coords; geocoding (below)
+      // refines them in place once it resolves.
+      RESTAURANTS.forEach((r) => {
+        r.coordSrc = "approx";
+        r.marker = L.marker([r.lat, r.lng], { title: r.name }).addTo(map);
+        r.marker.on("click", () => showInfo(r));
       });
 
-      // Frame all pins on load.
-      if (markers.length) {
-        const group = L.featureGroup(markers);
+      let userMoved = false;
+      map.on("dragstart zoomstart", () => {
+        userMoved = true;
+      });
+
+      function fitAll() {
+        const group = L.featureGroup(RESTAURANTS.map((r) => r.marker));
         map.fitBounds(group.getBounds().pad(0.15));
       }
+      fitAll();
+
+      /* -----------------------------------------------------------------
+         Progressive geocoding. This runs in the visitor's browser, so it
+         is NOT subject to any server-side network allowlist. Pins appear
+         instantly at the approximate coordinates, then snap to geocoded
+         positions as results arrive. Results are cached in localStorage,
+         and a Lisbon bounding box rejects any wild match so a bad geocode
+         can never throw a pin off the map. Everything degrades gracefully:
+         if the geocoders are unreachable, the approximate pins remain.
+         ----------------------------------------------------------------- */
+      const LISBON_BBOX = {
+        minLat: 38.6,
+        maxLat: 38.85,
+        minLng: -9.35,
+        maxLng: -9.05,
+      };
+      const inLisbon = (lat, lng) =>
+        Number.isFinite(lat) &&
+        Number.isFinite(lng) &&
+        lat >= LISBON_BBOX.minLat &&
+        lat <= LISBON_BBOX.maxLat &&
+        lng >= LISBON_BBOX.minLng &&
+        lng <= LISBON_BBOX.maxLng;
+
+      const CACHE_KEY = "lisboa-geocode-v1";
+      let cache = {};
+      try {
+        cache = JSON.parse(localStorage.getItem(CACHE_KEY)) || {};
+      } catch (e) {
+        cache = {};
+      }
+      const saveCache = () => {
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+        } catch (e) {
+          /* storage full or disabled — fine, just don't cache */
+        }
+      };
+
+      const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+      const statusEl = document.getElementById("geo-status");
+
+      async function geocodeNominatim(address) {
+        const params = new URLSearchParams({
+          q: address + ", Lisboa, Portugal",
+          format: "jsonv2",
+          limit: "1",
+          countrycodes: "pt",
+          viewbox: "-9.35,38.85,-9.05,38.6",
+          bounded: "1",
+        });
+        const res = await fetch(
+          "https://nominatim.openstreetmap.org/search?" + params,
+          { headers: { Accept: "application/json" } },
+        );
+        if (!res.ok) throw new Error("nominatim " + res.status);
+        const data = await res.json();
+        if (data.length)
+          return { lat: +data[0].lat, lng: +data[0].lon, provider: "Nominatim" };
+        return null;
+      }
+
+      async function geocodePhoton(address) {
+        const params = new URLSearchParams({
+          q: address + ", Lisboa, Portugal",
+          limit: "1",
+          lat: "38.72",
+          lon: "-9.14",
+        });
+        const res = await fetch("https://photon.komoot.io/api/?" + params);
+        if (!res.ok) throw new Error("photon " + res.status);
+        const data = await res.json();
+        if (data.features && data.features.length) {
+          const c = data.features[0].geometry.coordinates;
+          return { lat: c[1], lng: c[0], provider: "Photon" };
+        }
+        return null;
+      }
+
+      async function geocodeOne(r) {
+        if (cache[r.address]) return cache[r.address];
+        let hit = null;
+        try {
+          hit = await geocodeNominatim(r.address);
+        } catch (e) {
+          /* fall through to Photon */
+        }
+        if (!hit) {
+          try {
+            hit = await geocodePhoton(r.address);
+          } catch (e) {
+            /* keep approximate */
+          }
+        }
+        if (hit && inLisbon(hit.lat, hit.lng)) {
+          cache[r.address] = hit;
+          saveCache();
+          return hit;
+        }
+        return null;
+      }
+
+      async function refinePins() {
+        if (typeof fetch !== "function") return;
+        let done = 0;
+        let improved = 0;
+        for (const r of RESTAURANTS) {
+          const wasCached = !!cache[r.address];
+          let hit = null;
+          try {
+            hit = await geocodeOne(r);
+          } catch (e) {
+            /* ignore — leave this pin approximate */
+          }
+          if (hit) {
+            r.marker.setLatLng([hit.lat, hit.lng]);
+            r.lat = hit.lat;
+            r.lng = hit.lng;
+            r.coordSrc = "geocoded";
+            r.coordProvider = hit.provider;
+            improved++;
+            if (activeRestaurant === r) showInfo(r); // refresh an open panel
+          }
+          done++;
+          statusEl.textContent = ` · refining locations… ${done}/${RESTAURANTS.length}`;
+          // Respect the free Nominatim endpoint (~1 req/s) — but only when we
+          // actually hit the network. Cache hits stay instant.
+          if (!wasCached) await sleep(1100);
+        }
+        if (improved && !userMoved) fitAll();
+        statusEl.textContent = improved
+          ? ` · ${improved} location${improved === 1 ? "" : "s"} refined`
+          : "";
+        if (statusEl.textContent)
+          setTimeout(() => {
+            statusEl.textContent = "";
+          }, 4000);
+      }
+
+      refinePins();
     </script>
   </body>
 </html>
