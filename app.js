@@ -409,12 +409,14 @@ function sideOffsetSign(side) {
   return 0;
 }
 
-// Draw one colored polyline per distinct block×side in `results` and fit the map
-// to them. Each line gets a distinct color + dash (cycled) so every segment is
-// clearly differentiated, and even/odd are offset to opposite sides of the
-// centerline. Clears previous lines. No-op until the map and geometry both
-// exist. Returns true if it drew at least one segment (callers skip a point-pan).
-function drawResultSegments(results) {
+// Draw one colored polyline per distinct block×side in `results`. Each line gets
+// a distinct color + dash (cycled) so every segment is clearly differentiated,
+// and even/odd are offset to opposite sides of the centerline. Clears previous
+// lines. No-op until the map and geometry both exist. Returns true if it drew at
+// least one segment (callers skip a point-pan).
+// `fitView` recenters/zooms the map to the result — only on a NEW search, not on
+// a filter toggle (that would reset the user's pan/zoom mid-inspection).
+function drawResultSegments(results, fitView = true) {
   if (!mapInstance || !segmentGeometry) return false;
   if (!resultSegmentLayer) resultSegmentLayer = L.layerGroup().addTo(mapInstance);
   resultSegmentLayer.clearLayers();
@@ -451,11 +453,14 @@ function drawResultSegments(results) {
 
   // Center on the search's focal corner (so the screen pin sits on it) rather
   // than fitting to the segments — an intersection block can run far from the
-  // corner (e.g. the bridged Charles St line up to Charles Circle).
-  if (lastSearchFocus) {
-    mapInstance.setView([lastSearchFocus.lat, lastSearchFocus.lng], 16);
-  } else if (bounds.length) {
-    mapInstance.fitBounds(bounds, { padding: [30, 30] });
+  // corner (e.g. the bridged Charles St line up to Charles Circle). Only on a
+  // new search; filter toggles pass fitView=false to preserve the user's view.
+  if (fitView) {
+    if (lastSearchFocus) {
+      mapInstance.setView([lastSearchFocus.lat, lastSearchFocus.lng], 16);
+    } else if (bounds.length) {
+      mapInstance.fitBounds(bounds, { padding: [30, 30] });
+    }
   }
   return bounds.length > 0 || !!lastSearchFocus;
 }
@@ -886,7 +891,7 @@ function renderMatchesOrError(matches, emptyMessage) {
 // Recompute the displayed results from baseRows ∩ every checked filter, then
 // re-render the filter panel, the table, and the map. No network — filters
 // carry precomputed main_id sets.
-function applyDebugFilters() {
+function applyDebugFilters(fitView = true) {
   let rows = lastSearch.baseRows.slice();
   for (const f of lastSearch.filterDefs) {
     if (f.available && lastSearch.checked.has(f.id)) {
@@ -898,7 +903,7 @@ function applyDebugFilters() {
   currentPage = 1;
   renderDebugFilters();
   renderSearchResults();
-  drawResultSegments(currentSearchResults);
+  drawResultSegments(currentSearchResults, fitView);
 }
 
 function renderDebugFilters() {
@@ -913,20 +918,15 @@ function renderDebugFilters() {
       <label class="debug-filter${f.available ? "" : " disabled"}">
         <input type="checkbox" data-filter="${f.id}"${lastSearch.checked.has(f.id) ? " checked" : ""}${f.available ? "" : " disabled"}>
         ${escapeHtml(f.label)}
-        <span class="debug-filter-count">${f.available ? f.keepIds.size : "n/a"}</span>
       </label>`,
     )
     .join("");
   // Map-geometry toggle: hide blocks whose lines were recovered via gap-bridging
-  // (approximate connectors). Count = bridged blocks among the current results.
-  const bridgedCount = currentSearchResults.filter(
-    (r) => segmentGeometry?.[segmentBlockKey(r.st_name, r.from, r.to)]?.bridged,
-  ).length;
+  // (approximate connectors).
   const bridgedBox = `
       <label class="debug-filter">
         <input type="checkbox" id="toggle-bridged"${showBridgedSegments ? " checked" : ""}>
         fix broken segments
-        <span class="debug-filter-count">${bridgedCount}</span>
       </label>`;
   el.innerHTML = `<span class="debug-filters-title">Debug filters</span>${boxes}${bridgedBox}`;
 
@@ -934,13 +934,14 @@ function renderDebugFilters() {
     cb.addEventListener("change", () => {
       if (cb.checked) lastSearch.checked.add(cb.dataset.filter);
       else lastSearch.checked.delete(cb.dataset.filter);
-      applyDebugFilters();
+      // Re-filter in place — don't refit the map (would reset the user's zoom).
+      applyDebugFilters(false);
     });
   });
   el.querySelector("#toggle-bridged")?.addEventListener("change", (e) => {
     showBridgedSegments = e.target.checked;
-    // Geometry-only toggle: redraw the map, leave the result rows alone.
-    drawResultSegments(currentSearchResults);
+    // Geometry-only toggle: redraw the map, leave the rows and the view alone.
+    drawResultSegments(currentSearchResults, false);
   });
 }
 
