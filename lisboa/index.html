@@ -163,6 +163,12 @@
         font-size: 0.72rem;
         color: #8a8a8a;
       }
+      .info-src--ok {
+        color: #1a7f3c;
+      }
+      .info-src--fail {
+        color: #b3541e;
+      }
 
       @media (max-width: 640px) {
         #info {
@@ -432,11 +438,22 @@
 
       function locationLine(r) {
         if (r.coordSrc === "geocoded") {
-          return `<p class="info-src">📍 Exact location via OpenStreetMap${
-            r.coordProvider ? " (" + escapeHtml(r.coordProvider) + ")" : ""
-          }</p>`;
+          const via = r.coordProvider ? " · " + escapeHtml(r.coordProvider) : "";
+          // "baked-in" means the geocoded coordinate ships in the source, so no
+          // pin movement happened this load — still a confirmed location.
+          const verb =
+            r.coordProvider === "baked-in"
+              ? "Confirmed location (baked-in geocoded coordinates)"
+              : "Pin moved to geocoded location";
+          return `<p class="info-src info-src--ok">✅ ${verb}${via}</p>`;
         }
-        return '<p class="info-src">📍 Approximate location (placed by address / neighbourhood)</p>';
+        if (r.coordSrc === "failed") {
+          return '<p class="info-src info-src--fail">⚠️ Geocoder returned no match — showing the built-in approximate location.</p>';
+        }
+        if (r.coordSrc === "pending") {
+          return '<p class="info-src">⏳ Refining location…</p>';
+        }
+        return '<p class="info-src">📍 Built-in approximate location (placed by address / neighbourhood).</p>';
       }
 
       function showInfo(r) {
@@ -477,10 +494,13 @@
 
       infoClose.addEventListener("click", clearInfo);
 
-      // Render markers immediately at the approximate coords; geocoding (below)
-      // refines them in place once it resolves.
+      // Render markers immediately at the built-in coords; geocoding (below)
+      // refines/verifies them once it resolves. Entries that already carry a
+      // baked-in geocoded coordinate (`baked: true`) are treated as confirmed
+      // and skipped by the geocoder.
       RESTAURANTS.forEach((r) => {
-        r.coordSrc = "approx";
+        r.coordSrc = r.baked ? "geocoded" : "builtin";
+        if (r.baked) r.coordProvider = r.coordProvider || "baked-in";
         r.marker = L.marker([r.lat, r.lng], { title: r.name }).addTo(map);
         r.marker.on("click", () => showInfo(r));
       });
@@ -599,15 +619,19 @@
 
       async function refinePins() {
         if (typeof fetch !== "function") return;
+        const todo = RESTAURANTS.filter((r) => !r.baked);
         let done = 0;
         let improved = 0;
-        for (const r of RESTAURANTS) {
+        let failed = 0;
+        for (const r of todo) {
           const wasCached = !!cache[r.address];
+          r.coordSrc = "pending";
+          if (activeRestaurant === r) showInfo(r);
           let hit = null;
           try {
             hit = await geocodeOne(r);
           } catch (e) {
-            /* ignore — leave this pin approximate */
+            /* ignore — handled as a failure below */
           }
           if (hit) {
             r.marker.setLatLng([hit.lat, hit.lng]);
@@ -616,23 +640,47 @@
             r.coordSrc = "geocoded";
             r.coordProvider = hit.provider;
             improved++;
-            if (activeRestaurant === r) showInfo(r); // refresh an open panel
+          } else {
+            r.coordSrc = "failed";
+            failed++;
           }
+          if (activeRestaurant === r) showInfo(r); // refresh an open panel
           done++;
-          statusEl.textContent = ` · refining locations… ${done}/${RESTAURANTS.length}`;
+          statusEl.textContent = ` · refining locations… ${done}/${todo.length}`;
           // Respect the free Nominatim endpoint (~1 req/s) — but only when we
           // actually hit the network. Cache hits stay instant.
           if (!wasCached) await sleep(1100);
         }
         if (improved && !userMoved) fitAll();
-        statusEl.textContent = improved
-          ? ` · ${improved} location${improved === 1 ? "" : "s"} refined`
-          : "";
+        const parts = [];
+        if (improved) parts.push(`${improved} refined`);
+        if (failed) parts.push(`${failed} unverified`);
+        statusEl.textContent = parts.length ? " · " + parts.join(", ") : "";
         if (statusEl.textContent)
           setTimeout(() => {
             statusEl.textContent = "";
-          }, 4000);
+          }, 5000);
+        // Console helper to bake the geocoded coordinates back into the source.
+        if (improved)
+          console.info(
+            "lisboa: run exportLisboaCoords() to copy geocoded coordinates for baking into index.html",
+          );
       }
+
+      // Dev helper — dump current (post-geocode) coordinates as JSON so they can
+      // be pasted back and baked into RESTAURANTS. Run in the browser console.
+      window.exportLisboaCoords = () =>
+        JSON.stringify(
+          RESTAURANTS.map((r) => ({
+            name: r.name,
+            lat: +Number(r.lat).toFixed(6),
+            lng: +Number(r.lng).toFixed(6),
+            src: r.coordSrc,
+            provider: r.coordProvider || null,
+          })),
+          null,
+          2,
+        );
 
       refinePins();
     </script>

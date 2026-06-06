@@ -92,6 +92,7 @@ check("cache holds 18 (19 minus the rejected one)", Object.keys(cache).length ==
 check("Photon called once (single Nominatim miss)", photonCalls === 1, "photon=" + photonCalls);
 check("all 19 addresses tried Nominatim first", nominatimCalls === 19, "nominatim=" + nominatimCalls);
 check("status reports a refined count", /refined/.test(statusEl.textContent), JSON.stringify(statusEl.textContent));
+check("status reports the unverified (failed) pin", /unverified/.test(statusEl.textContent), JSON.stringify(statusEl.textContent));
 
 console.log("\n  RESULT  TEST");
 for (const [ok, name, detail] of results)
