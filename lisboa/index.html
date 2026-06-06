@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Eat Like a Local in Lisbon — Map</title>
+
+    <!-- Leaflet -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family:
+          system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+          sans-serif;
+        color: #1a1a1a;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        padding: 14px 20px;
+        background: #091f2f;
+        color: #fff;
+        flex: 0 0 auto;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+      header p {
+        margin: 4px 0 0;
+        font-size: 0.8rem;
+        opacity: 0.85;
+      }
+      header a {
+        color: #fff;
+      }
+      #map {
+        flex: 1 1 auto;
+        width: 100%;
+        min-height: 0;
+      }
+      .leaflet-popup-content {
+        margin: 12px 14px;
+        line-height: 1.4;
+      }
+      .popup-name {
+        font-weight: 700;
+        font-size: 1rem;
+        margin-bottom: 2px;
+      }
+      .popup-dish {
+        color: #c8102e;
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        margin-bottom: 6px;
+      }
+      .popup-meta {
+        font-size: 0.85rem;
+        color: #444;
+        margin: 0 0 8px;
+      }
+      .popup-link {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: #1f5c99;
+      }
+      .popup-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Eat Like a Local in Lisbon</h1>
+      <p>
+        Restaurants from Time Out's
+        <a
+          href="https://www.timeout.com/lisbon/restaurants/eat-like-a-local-in-lisbon"
+          target="_blank"
+          rel="noopener"
+          >“How to eat like a local in Lisbon”</a
+        >. Tap a pin for details. (Pin locations are approximate.)
+      </p>
+    </header>
+    <div id="map"></div>
+
+    <script>
+      // Restaurants featured in Time Out's "How to eat like a local in Lisbon"
+      // guide, with the local dish each is known for. Coordinates are
+      // approximate, placed by neighbourhood/address.
+      const RESTAURANTS = [
+        {
+          name: "Cervejaria Ramiro",
+          dish: "Marisco (shellfish & seafood)",
+          area: "Av. Almirante Reis 1, Intendente",
+          lat: 38.7206,
+          lng: -9.1352,
+          url: "https://www.timeout.com/lisbon/restaurants/cervejaria-ramiro",
+        },
+        {
+          name: "Pinóquio",
+          dish: "Pica-pau & amêijoas (steak bites & clams)",
+          area: "Praça dos Restauradores 79, Santa Maria Maior",
+          lat: 38.7166,
+          lng: -9.1417,
+          url: "https://www.timeout.com/lisbon/restaurants/pinoquio",
+        },
+        {
+          name: "O Velho Eurico",
+          dish: "Petiscos, croquetes & bolinhos de bacalhau",
+          area: "Rua de São Cristóvão 3, below São Jorge Castle",
+          lat: 38.7118,
+          lng: -9.134,
+          url: "https://www.timeout.com/lisbon/restaurants/o-eurico",
+        },
+        {
+          name: "A Casa do Bacalhau",
+          dish: "Bacalhau & pataniscas (salt cod)",
+          area: "Rua do Grilo 54, Beato / Xabregas",
+          lat: 38.727,
+          lng: -9.1085,
+          url: "https://www.timeout.com/lisbon/restaurants/a-casa-do-bacalhau",
+        },
+        {
+          name: "A Valenciana",
+          dish: "Frango assado (piri-piri chicken)",
+          area: "Rua Marquês de Fronteira 157, Campolide",
+          lat: 38.73,
+          lng: -9.162,
+          url: "https://www.timeout.com/lisbon/restaurants/a-valenciana",
+        },
+        {
+          name: "O Cartaxinho",
+          dish: "Cozido à portuguesa (Portuguese stew)",
+          area: "Rua de Santa Marta 20B, off Avenida da Liberdade",
+          lat: 38.722,
+          lng: -9.145,
+          url: "https://www.timeout.com/lisbon/restaurants/o-cartaxinho",
+        },
+        {
+          name: "O Surf & Turf",
+          dish: "Cozido à portuguesa & petiscos",
+          area: "Cais do Sodré",
+          lat: 38.7065,
+          lng: -9.145,
+          url: "https://www.timeout.com/lisbon/restaurants/o-surf-turf",
+        },
+        {
+          name: "Time Out Market Lisboa",
+          dish: "Croqueteria, Sea Me, Olhó Bacalhau & more",
+          area: "Mercado da Ribeira, Av. 24 de Julho 49, Cais do Sodré",
+          lat: 38.7068,
+          lng: -9.1459,
+          url: "https://www.timeout.com/time-out-market-lisboa",
+        },
+      ];
+
+      const map = L.map("map", { scrollWheelZoom: false }).setView(
+        [38.7186, -9.138],
+        13,
+      );
+
+      L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+        {
+          maxZoom: 20,
+          attribution: "&copy; OpenStreetMap, &copy; CARTO",
+        },
+      ).addTo(map);
+
+      const markers = RESTAURANTS.map((r) => {
+        const popup = `
+          <div class="popup-name">${r.name}</div>
+          <div class="popup-dish">${r.dish}</div>
+          <p class="popup-meta">${r.area}</p>
+          <a class="popup-link" href="${r.url}" target="_blank" rel="noopener"
+            >View on Time Out →</a
+          >`;
+        return L.marker([r.lat, r.lng]).bindPopup(popup).addTo(map);
+      });
+
+      // Frame all pins on load.
+      if (markers.length) {
+        const group = L.featureGroup(markers);
+        map.fitBounds(group.getBounds().pad(0.15));
+      }
+    </script>
+  </body>
+</html>
