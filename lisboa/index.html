@@ -41,6 +41,7 @@
         background: #091f2f;
         color: #fff;
         flex: 0 0 auto;
+        z-index: 1100;
       }
       header h1 {
         margin: 0;
@@ -55,41 +56,114 @@
       header a {
         color: #fff;
       }
-      #map {
+
+      .map-wrap {
+        position: relative;
         flex: 1 1 auto;
-        width: 100%;
         min-height: 0;
       }
-      .leaflet-popup-content {
-        margin: 12px 14px;
-        line-height: 1.4;
+      #map {
+        position: absolute;
+        inset: 0;
       }
-      .popup-name {
+
+      /* Info element — populated when a pin is clicked. */
+      #info {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 340px;
+        max-width: calc(100% - 32px);
+        max-height: calc(100% - 32px);
+        overflow-y: auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.22);
+        z-index: 1000;
+        padding: 20px 22px;
+      }
+      #info-close {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        border: none;
+        background: none;
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+        color: #888;
+      }
+      #info-close:hover {
+        color: #222;
+      }
+      .info-empty {
+        color: #555;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+      .info-name {
         font-weight: 700;
-        font-size: 1rem;
-        margin-bottom: 2px;
+        font-size: 1.25rem;
+        margin: 0 24px 4px 0;
       }
-      .popup-dish {
-        color: #c8102e;
-        font-size: 0.82rem;
-        font-weight: 600;
+      .info-dish {
+        display: inline-block;
+        color: #fff;
+        background: #c8102e;
+        font-size: 0.72rem;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.02em;
-        margin-bottom: 6px;
+        letter-spacing: 0.03em;
+        padding: 3px 9px;
+        border-radius: 999px;
+        margin-bottom: 12px;
       }
-      .popup-meta {
-        font-size: 0.85rem;
-        color: #444;
+      .info-row {
+        font-size: 0.9rem;
+        color: #333;
         margin: 0 0 8px;
+        line-height: 1.45;
       }
-      .popup-link {
-        font-size: 0.85rem;
+      .info-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #8a8a8a;
+        font-weight: 700;
+        margin: 14px 0 4px;
+      }
+      .info-stalls {
+        margin: 4px 0 0;
+        padding-left: 18px;
+        font-size: 0.88rem;
+        color: #333;
+      }
+      .info-stalls li {
+        margin-bottom: 3px;
+      }
+      .info-link {
+        display: inline-block;
+        margin-top: 14px;
+        font-size: 0.9rem;
         font-weight: 600;
         text-decoration: none;
         color: #1f5c99;
       }
-      .popup-link:hover {
+      .info-link:hover {
         text-decoration: underline;
+      }
+
+      @media (max-width: 640px) {
+        #info {
+          top: auto;
+          right: 0;
+          left: 0;
+          bottom: 0;
+          width: 100%;
+          max-width: 100%;
+          max-height: 60%;
+          border-radius: 14px 14px 0 0;
+        }
       }
     </style>
   </head>
@@ -106,76 +180,99 @@
         >. Tap a pin for details. (Pin locations are approximate.)
       </p>
     </header>
-    <div id="map"></div>
+
+    <div class="map-wrap">
+      <div id="map"></div>
+      <aside id="info" aria-live="polite">
+        <button id="info-close" aria-label="Close" style="display: none">
+          &times;
+        </button>
+        <div id="info-body">
+          <p class="info-empty">
+            Tap any pin to see what it's known for, where it is, and a link to
+            its Time Out page.
+          </p>
+        </div>
+      </aside>
+    </div>
 
     <script>
       // Restaurants featured in Time Out's "How to eat like a local in Lisbon"
-      // guide, with the local dish each is known for. Coordinates are
-      // approximate, placed by neighbourhood/address.
+      // guide — one entry per distinct physical location. Coordinates are
+      // approximate (Ramiro and O Cartaxinho are exact from Apple Maps); the
+      // rest are placed by street address / neighbourhood.
       const RESTAURANTS = [
         {
           name: "Cervejaria Ramiro",
           dish: "Marisco (shellfish & seafood)",
-          area: "Av. Almirante Reis 1, Intendente",
-          lat: 38.7206,
-          lng: -9.1352,
+          area: "Intendente / Arroios",
+          address: "Av. Almirante Reis 1-H, 1150-007",
+          lat: 38.7203,
+          lng: -9.1357,
           url: "https://www.timeout.com/lisbon/restaurants/cervejaria-ramiro",
         },
         {
           name: "Pinóquio",
           dish: "Pica-pau & amêijoas (steak bites & clams)",
-          area: "Praça dos Restauradores 79, Santa Maria Maior",
+          area: "Santa Maria Maior (Restauradores)",
+          address: "Praça dos Restauradores 79, 1250-188",
           lat: 38.7166,
           lng: -9.1417,
           url: "https://www.timeout.com/lisbon/restaurants/pinoquio",
+          note: "The original since 1982; a second branch is inside Time Out Market.",
         },
         {
           name: "O Velho Eurico",
           dish: "Petiscos, croquetes & bolinhos de bacalhau",
-          area: "Rua de São Cristóvão 3, below São Jorge Castle",
-          lat: 38.7118,
-          lng: -9.134,
+          area: "Mouraria (below São Jorge Castle)",
+          address: "Largo de São Cristóvão 3, 1100-179",
+          lat: 38.7137,
+          lng: -9.1353,
           url: "https://www.timeout.com/lisbon/restaurants/o-eurico",
         },
         {
           name: "A Casa do Bacalhau",
           dish: "Bacalhau & pataniscas (salt cod)",
-          area: "Rua do Grilo 54, Beato / Xabregas",
-          lat: 38.727,
-          lng: -9.1085,
+          area: "Beato / Marvila (Xabregas)",
+          address: "Rua do Grilo 54, 1950-145",
+          lat: 38.7296,
+          lng: -9.1078,
           url: "https://www.timeout.com/lisbon/restaurants/a-casa-do-bacalhau",
         },
         {
           name: "A Valenciana",
           dish: "Frango assado (piri-piri chicken)",
-          area: "Rua Marquês de Fronteira 157, Campolide",
-          lat: 38.73,
-          lng: -9.162,
+          area: "Campolide",
+          address: "Rua Marquês de Fronteira 157, 1070-294",
+          lat: 38.7293,
+          lng: -9.161,
           url: "https://www.timeout.com/lisbon/restaurants/a-valenciana",
         },
         {
           name: "O Cartaxinho",
           dish: "Cozido à portuguesa (Portuguese stew)",
-          area: "Rua de Santa Marta 20B, off Avenida da Liberdade",
-          lat: 38.722,
-          lng: -9.145,
+          area: "Off Avenida da Liberdade (Santa Marta)",
+          address: "Rua de Santa Marta 20B, 1150-295",
+          lat: 38.7216,
+          lng: -9.1449,
           url: "https://www.timeout.com/lisbon/restaurants/o-cartaxinho",
         },
         {
-          name: "O Surf & Turf",
-          dish: "Cozido à portuguesa & petiscos",
-          area: "Cais do Sodré",
-          lat: 38.7065,
-          lng: -9.145,
-          url: "https://www.timeout.com/lisbon/restaurants/o-surf-turf",
-        },
-        {
           name: "Time Out Market Lisboa",
-          dish: "Croqueteria, Sea Me, Olhó Bacalhau & more",
-          area: "Mercado da Ribeira, Av. 24 de Julho 49, Cais do Sodré",
+          dish: "Food hall (Mercado da Ribeira)",
+          area: "Cais do Sodré",
+          address: "Av. 24 de Julho 49, 1200-109",
           lat: 38.7068,
           lng: -9.1459,
           url: "https://www.timeout.com/time-out-market-lisboa",
+          stalls: [
+            "Pinóquio (second branch)",
+            "O Surf & Turf — cozido & petiscos",
+            "Croqueteria — croquetes",
+            "Sea Me — fish & seafood",
+            "Olhó Bacalhau — pastéis de bacalhau",
+            "Café de São Bento — steak",
+          ],
         },
       ];
 
@@ -192,15 +289,56 @@
         },
       ).addTo(map);
 
-      const markers = RESTAURANTS.map((r) => {
-        const popup = `
-          <div class="popup-name">${r.name}</div>
-          <div class="popup-dish">${r.dish}</div>
-          <p class="popup-meta">${r.area}</p>
-          <a class="popup-link" href="${r.url}" target="_blank" rel="noopener"
+      const infoBody = document.getElementById("info-body");
+      const infoClose = document.getElementById("info-close");
+
+      function escapeHtml(s) {
+        return String(s).replace(
+          /[&<>"]/g,
+          (c) =>
+            ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+        );
+      }
+
+      function showInfo(r) {
+        const stalls = r.stalls
+          ? `<div class="info-label">Featured stalls</div>
+             <ul class="info-stalls">${r.stalls
+               .map((s) => `<li>${escapeHtml(s)}</li>`)
+               .join("")}</ul>`
+          : "";
+        const note = r.note
+          ? `<p class="info-row" style="color:#666;font-style:italic">${escapeHtml(
+              r.note,
+            )}</p>`
+          : "";
+        infoBody.innerHTML = `
+          <div class="info-name">${escapeHtml(r.name)}</div>
+          <div class="info-dish">${escapeHtml(r.dish)}</div>
+          <div class="info-label">Address</div>
+          <p class="info-row">${escapeHtml(r.address)}<br />${escapeHtml(
+            r.area,
+          )}</p>
+          ${note}
+          ${stalls}
+          <a class="info-link" href="${r.url}" target="_blank" rel="noopener"
             >View on Time Out →</a
           >`;
-        return L.marker([r.lat, r.lng]).bindPopup(popup).addTo(map);
+        infoClose.style.display = "block";
+      }
+
+      function clearInfo() {
+        infoBody.innerHTML =
+          '<p class="info-empty">Tap any pin to see what it\'s known for, where it is, and a link to its Time Out page.</p>';
+        infoClose.style.display = "none";
+      }
+
+      infoClose.addEventListener("click", clearInfo);
+
+      const markers = RESTAURANTS.map((r) => {
+        const marker = L.marker([r.lat, r.lng], { title: r.name }).addTo(map);
+        marker.on("click", () => showInfo(r));
+        return marker;
       });
 
       // Frame all pins on load.
