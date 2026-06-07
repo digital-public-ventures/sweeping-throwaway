@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Eat Like a Local in Lisbon — Map</title>
+    <title>Lisbon Time Out Picks — Map</title>
 
     <!-- Leaflet -->
     <link
@@ -17,6 +17,7 @@
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
       crossorigin=""
     ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <style>
       * {
@@ -28,7 +29,12 @@
         padding: 0;
         height: 100%;
         font-family:
-          system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
           sans-serif;
         color: #1a1a1a;
       }
@@ -169,6 +175,13 @@
       .info-src--fail {
         color: #b3541e;
       }
+      .pin-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      }
 
       @media (max-width: 640px) {
         #info {
@@ -186,9 +199,9 @@
   </head>
   <body>
     <header>
-      <h1>Eat Like a Local in Lisbon</h1>
+      <h1>Lisbon Time Out Picks</h1>
       <p>
-        Restaurants from Time Out's
+        Places from the local Lisbon CSV, including restaurants from Time Out's
         <a
           href="https://www.timeout.com/lisbon/restaurants/eat-like-a-local-in-lisbon"
           target="_blank"
@@ -207,209 +220,14 @@
         </button>
         <div id="info-body">
           <p class="info-empty">
-            Tap any pin to see what it's known for, where it is, and a link to
-            its Time Out page.
+            Tap any pin to see what it's known for, where it is, and a useful
+            source link.
           </p>
         </div>
       </aside>
     </div>
 
     <script>
-      // Restaurants featured in Time Out's "How to eat like a local in Lisbon"
-      // guide — one entry per distinct physical location. Coordinates are
-      // approximate (Ramiro and O Cartaxinho are exact from Apple Maps); the
-      // rest are placed by street address / neighbourhood.
-      const RESTAURANTS = [
-        {
-          name: "Cervejaria Ramiro",
-          dish: "Marisco (shellfish & seafood)",
-          area: "Intendente / Arroios",
-          address: "Av. Almirante Reis 1-H, 1150-007",
-          lat: 38.7203,
-          lng: -9.1357,
-          url: "https://www.timeout.com/lisbon/restaurants/cervejaria-ramiro",
-        },
-        {
-          name: "Pinóquio",
-          dish: "Pica-pau & amêijoas (steak bites & clams)",
-          area: "Santa Maria Maior (Restauradores)",
-          address: "Praça dos Restauradores 79, 1250-188",
-          lat: 38.7166,
-          lng: -9.1417,
-          url: "https://www.timeout.com/lisbon/restaurants/pinoquio",
-          note: "The original since 1982; a second branch is inside Time Out Market.",
-        },
-        {
-          name: "O Velho Eurico",
-          dish: "Petiscos, croquetes & bolinhos de bacalhau",
-          area: "Mouraria (below São Jorge Castle)",
-          address: "Largo de São Cristóvão 3, 1100-179",
-          lat: 38.7137,
-          lng: -9.1353,
-          url: "https://www.timeout.com/lisbon/restaurants/o-eurico",
-        },
-        {
-          name: "A Casa do Bacalhau",
-          dish: "Bacalhau & pataniscas (salt cod)",
-          area: "Beato / Marvila (Xabregas)",
-          address: "Rua do Grilo 54, 1950-145",
-          lat: 38.7296,
-          lng: -9.1078,
-          url: "https://www.timeout.com/lisbon/restaurants/a-casa-do-bacalhau",
-        },
-        {
-          name: "A Valenciana",
-          dish: "Frango assado (piri-piri chicken)",
-          area: "Campolide",
-          address: "Rua Marquês de Fronteira 157, 1070-294",
-          lat: 38.7293,
-          lng: -9.161,
-          url: "https://www.timeout.com/lisbon/restaurants/a-valenciana",
-        },
-        {
-          name: "O Cartaxinho",
-          dish: "Cozido à portuguesa (Portuguese stew)",
-          area: "Off Avenida da Liberdade (Santa Marta)",
-          address: "Rua de Santa Marta 20B, 1150-295",
-          lat: 38.7216,
-          lng: -9.1449,
-          url: "https://www.timeout.com/lisbon/restaurants/o-cartaxinho",
-        },
-        {
-          name: "Manteigaria (Chiado)",
-          dish: "Pastel de nata (custard tart)",
-          area: "Chiado / Bairro Alto (Largo de Camões)",
-          address: "Rua do Loreto 2, 1200-108",
-          lat: 38.7106,
-          lng: -9.1432,
-          url: "https://www.timeout.com/lisbon/restaurants/manteigaria",
-          note: "The 1900 Art Nouveau original — when you hear the bell, a fresh batch is out.",
-        },
-        {
-          name: "Manteigaria (Rua Augusta)",
-          dish: "Pastel de nata (custard tart)",
-          area: "Baixa",
-          address: "Rua Augusta 195-197, 1100-061",
-          lat: 38.7102,
-          lng: -9.1376,
-          url: "https://www.timeout.com/lisbon/restaurants/manteigaria",
-        },
-        {
-          name: "Manteigaria (Belém)",
-          dish: "Pastel de nata (custard tart)",
-          area: "Belém",
-          address: "Rua de Belém 100-106, 1300-085",
-          lat: 38.6972,
-          lng: -9.2025,
-          url: "https://www.timeout.com/lisbon/restaurants/manteigaria",
-        },
-        {
-          name: "Manteigaria (Campo de Ourique)",
-          dish: "Pastel de nata (custard tart)",
-          area: "Campo de Ourique (Jardim da Parada)",
-          address: "Rua Quatro de Infantaria 20C, 1350-093",
-          lat: 38.7163,
-          lng: -9.1668,
-          url: "https://www.timeout.com/lisbon/restaurants/manteigaria",
-        },
-        {
-          name: "Manteigaria (Saldanha)",
-          dish: "Pastel de nata (custard tart)",
-          area: "Saldanha / Avenidas Novas",
-          address: "Av. Duque de Ávila 32A, 1000-141",
-          lat: 38.7335,
-          lng: -9.1452,
-          url: "https://www.timeout.com/lisbon/restaurants/manteigaria",
-        },
-        {
-          name: "Manteigaria (Alvalade)",
-          dish: "Pastel de nata (custard tart)",
-          area: "Alvalade",
-          address: "Av. Rio de Janeiro 44, 1700-330",
-          lat: 38.7527,
-          lng: -9.1388,
-          url: "https://www.timeout.com/lisbon/restaurants/manteigaria",
-        },
-        {
-          name: "Manteigaria (Parque das Nações)",
-          dish: "Pastel de nata (custard tart)",
-          area: "Parque das Nações (Gare do Oriente)",
-          address: "Av. Dom João II 44 AB, 1990-095",
-          lat: 38.7668,
-          lng: -9.0978,
-          url: "https://www.timeout.com/lisbon/restaurants/manteigaria",
-        },
-        {
-          name: "Gambrinus",
-          dish: "Prego & croquetes (steak sandwich)",
-          area: "Baixa (Santa Maria Maior)",
-          address: "Rua das Portas de Santo Antão 23, 1150-264",
-          lat: 38.715,
-          lng: -9.1398,
-          url: "https://www.timeout.com/lisbon/restaurants/gambrinus",
-          note: "Order the prego mal passado at the counter with a tulipa (small draught beer) and a croquette dipped in the house mustard.",
-        },
-        {
-          name: "As Bifanas do Afonso (Madalena)",
-          dish: "Bifana (pork sandwich)",
-          area: "Sé / Baixa",
-          address: "Rua da Madalena 146, 1100-320",
-          lat: 38.7112,
-          lng: -9.135,
-          url: "https://www.timeout.com/lisbon/restaurants/as-bifanas-do-afonso",
-          note: "The 50-year-old hole-in-the-wall original — stand-up counter, lunchtime queues.",
-        },
-        {
-          name: "As Bifanas do Afonso (Baixa)",
-          dish: "Bifana (pork sandwich)",
-          area: "Baixa (Rua dos Sapateiros)",
-          address: "Rua dos Sapateiros 158, 1100-580",
-          lat: 38.7104,
-          lng: -9.1381,
-          url: "https://www.timeout.com/lisbon/restaurants/as-bifanas-do-afonso",
-          note: "Newer sit-down counter inside the Lisbon Art Stay hotel, near Rua Augusta.",
-        },
-        {
-          name: "O Trevo",
-          dish: "Bifana (pork sandwich)",
-          area: "Chiado / Bairro Alto (Largo de Camões)",
-          address: "Praça Luís de Camões 48, 1200-243",
-          lat: 38.7104,
-          lng: -9.1421,
-          url: "https://www.timeout.com/lisbon/restaurants/o-trevo",
-          note: "The bifana that won over Anthony Bourdain on No Reservations.",
-        },
-        {
-          name: "Gancho",
-          dish: "Neo-tasca petiscos",
-          area: "Alfama",
-          address: "Rua do Vigário 70B, 1100-616",
-          lat: 38.7119,
-          lng: -9.1281,
-          url: "https://www.timeout.com/lisbon/restaurants/eat-like-a-local-in-lisbon",
-          note: "A modern Alfama tavern with Portuguese, French and Italian influences and a seasonal menu.",
-        },
-        {
-          name: "Time Out Market Lisboa",
-          dish: "Food hall (Mercado da Ribeira)",
-          area: "Cais do Sodré",
-          address: "Av. 24 de Julho 49, 1200-109",
-          lat: 38.7068,
-          lng: -9.1459,
-          url: "https://www.timeout.com/time-out-market-lisboa",
-          stalls: [
-            "Pinóquio (second branch)",
-            "O Surf & Turf — cozido & petiscos",
-            "Croqueteria — croquetes",
-            "Sea Me — fish & seafood",
-            "Olhó Bacalhau — pastéis de bacalhau",
-            "Café de São Bento — steak",
-            "Manteigaria — pastéis de nata",
-          ],
-          note: "Pinóquio and Manteigaria also have branches inside the market — shown here as stalls rather than as their own overlapping pins.",
-        },
-      ];
-
       const map = L.map("map", { scrollWheelZoom: false }).setView(
         [38.7186, -9.138],
         13,
@@ -417,272 +235,131 @@
 
       L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-        {
-          maxZoom: 20,
-          attribution: "&copy; OpenStreetMap, &copy; CARTO",
-        },
+        { maxZoom: 20, attribution: "&copy; OpenStreetMap, &copy; CARTO" },
       ).addTo(map);
 
       const infoBody = document.getElementById("info-body");
       const infoClose = document.getElementById("info-close");
+      const statusEl = document.getElementById("geo-status");
+      const CSV_URL = "timeout-lisbon-things-to-do.csv";
+
+      const TYPE_COLORS = {
+        aquarium: "#0072bc",
+        bakery: "#c8102e",
+        beach: "#00a6a6",
+        "boat tour": "#2a6f97",
+        bookshop: "#6c5b7b",
+        cemetery: "#5b6770",
+        "cultural complex": "#d1495b",
+        "flea market": "#f28c28",
+        "food hall": "#d95d39",
+        hotel: "#6a4c93",
+        museum: "#255f85",
+        "music venue": "#8f2d56",
+        nightclub: "#2d1e2f",
+        restaurant: "#2e7d32",
+        "rooftop bar": "#b45309",
+        shop: "#4d908e",
+        viewpoint: "#0081a7",
+      };
 
       function escapeHtml(s) {
         return String(s).replace(
           /[&<>"]/g,
-          (c) =>
-            ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
         );
       }
 
-      let activeRestaurant = null;
-
-      function locationLine(r) {
-        if (r.coordSrc === "geocoded") {
-          const via = r.coordProvider ? " · " + escapeHtml(r.coordProvider) : "";
-          // "baked-in" means the geocoded coordinate ships in the source, so no
-          // pin movement happened this load — still a confirmed location.
-          const verb =
-            r.coordProvider === "baked-in"
-              ? "Confirmed location (baked-in geocoded coordinates)"
-              : "Pin moved to geocoded location";
-          return `<p class="info-src info-src--ok">✅ ${verb}${via}</p>`;
-        }
-        if (r.coordSrc === "failed") {
-          return '<p class="info-src info-src--fail">⚠️ Geocoder returned no match — showing the built-in approximate location.</p>';
-        }
-        if (r.coordSrc === "pending") {
-          return '<p class="info-src">⏳ Refining location…</p>';
-        }
-        return '<p class="info-src">📍 Built-in approximate location (placed by address / neighbourhood).</p>';
+      function rowLink(row) {
+        return (
+          row.item_url ||
+          row.booking_or_activity_url ||
+          row.related_timeout_url ||
+          row.source_page_url
+        );
       }
 
-      function showInfo(r) {
-        const stalls = r.stalls
-          ? `<div class="info-label">Featured stalls</div>
-             <ul class="info-stalls">${r.stalls
-               .map((s) => `<li>${escapeHtml(s)}</li>`)
-               .join("")}</ul>`
+      function detail(label, value) {
+        if (!value) return "";
+        return `<div class="info-label">${escapeHtml(label)}</div><p class="info-row">${escapeHtml(value)}</p>`;
+      }
+
+      function showInfo(row) {
+        const note = row.notes
+          ? `<p class="info-row" style="color:#666;font-style:italic">${escapeHtml(row.notes)}</p>`
           : "";
-        const note = r.note
-          ? `<p class="info-row" style="color:#666;font-style:italic">${escapeHtml(
-              r.note,
-            )}</p>`
-          : "";
+        const link = rowLink(row);
         infoBody.innerHTML = `
-          <div class="info-name">${escapeHtml(r.name)}</div>
-          <div class="info-dish">${escapeHtml(r.dish)}</div>
-          <div class="info-label">Address</div>
-          <p class="info-row">${escapeHtml(r.address)}<br />${escapeHtml(
-            r.area,
-          )}</p>
+          <div class="info-name">${escapeHtml(row.name)}</div>
+          <div class="info-dish">${escapeHtml(row.item_type)}</div>
+          ${detail("Description", row.description)}
+          ${detail("Address", [row.address, row.neighborhood_or_area].filter(Boolean).join("\n"))}
+          ${detail("Price", row.price)}
+          ${detail("Why it's here", row.verdict)}
           ${note}
-          ${stalls}
-          <a class="info-link" href="${r.url}" target="_blank" rel="noopener"
-            >View on Time Out →</a
-          >
-          ${locationLine(r)}`;
+          <a class="info-link" href="${escapeHtml(link)}" target="_blank" rel="noopener"
+            >View details -></a
+          >`;
         infoClose.style.display = "block";
-        activeRestaurant = r;
       }
 
       function clearInfo() {
         infoBody.innerHTML =
-          '<p class="info-empty">Tap any pin to see what it\'s known for, where it is, and a link to its Time Out page.</p>';
+          '<p class="info-empty">Tap any pin to see what it\'s known for, where it is, and a useful source link.</p>';
         infoClose.style.display = "none";
-        activeRestaurant = null;
       }
 
       infoClose.addEventListener("click", clearInfo);
 
-      // Render markers immediately at the built-in coords; geocoding (below)
-      // refines/verifies them once it resolves. Entries that already carry a
-      // baked-in geocoded coordinate (`baked: true`) are treated as confirmed
-      // and skipped by the geocoder.
-      RESTAURANTS.forEach((r) => {
-        r.coordSrc = r.baked ? "geocoded" : "builtin";
-        if (r.baked) r.coordProvider = r.coordProvider || "baked-in";
-        r.marker = L.marker([r.lat, r.lng], { title: r.name }).addTo(map);
-        r.marker.on("click", () => showInfo(r));
-      });
-
-      let userMoved = false;
-      map.on("dragstart zoomstart", () => {
-        userMoved = true;
-      });
-
-      function fitAll() {
-        const group = L.featureGroup(RESTAURANTS.map((r) => r.marker));
-        map.fitBounds(group.getBounds().pad(0.15));
-      }
-      fitAll();
-
-      /* -----------------------------------------------------------------
-         Progressive geocoding. This runs in the visitor's browser, so it
-         is NOT subject to any server-side network allowlist. Pins appear
-         instantly at the approximate coordinates, then snap to geocoded
-         positions as results arrive. Results are cached in localStorage,
-         and a Lisbon bounding box rejects any wild match so a bad geocode
-         can never throw a pin off the map. Everything degrades gracefully:
-         if the geocoders are unreachable, the approximate pins remain.
-         ----------------------------------------------------------------- */
-      const LISBON_BBOX = {
-        minLat: 38.6,
-        maxLat: 38.85,
-        minLng: -9.35,
-        maxLng: -9.05,
-      };
-      const inLisbon = (lat, lng) =>
-        Number.isFinite(lat) &&
-        Number.isFinite(lng) &&
-        lat >= LISBON_BBOX.minLat &&
-        lat <= LISBON_BBOX.maxLat &&
-        lng >= LISBON_BBOX.minLng &&
-        lng <= LISBON_BBOX.maxLng;
-
-      const CACHE_KEY = "lisboa-geocode-v1";
-      let cache = {};
-      try {
-        cache = JSON.parse(localStorage.getItem(CACHE_KEY)) || {};
-      } catch (e) {
-        cache = {};
-      }
-      const saveCache = () => {
-        try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-        } catch (e) {
-          /* storage full or disabled — fine, just don't cache */
-        }
-      };
-
-      const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
-      const statusEl = document.getElementById("geo-status");
-
-      async function geocodeNominatim(address) {
-        const params = new URLSearchParams({
-          q: address + ", Lisboa, Portugal",
-          format: "jsonv2",
-          limit: "1",
-          countrycodes: "pt",
-          viewbox: "-9.35,38.85,-9.05,38.6",
-          bounded: "1",
+      function markerIcon(type) {
+        const color = TYPE_COLORS[type] || "#555";
+        return L.divIcon({
+          className: "",
+          html: `<div class="pin-dot" style="background:${color}"></div>`,
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
         });
-        const res = await fetch(
-          "https://nominatim.openstreetmap.org/search?" + params,
-          { headers: { Accept: "application/json" } },
-        );
-        if (!res.ok) throw new Error("nominatim " + res.status);
-        const data = await res.json();
-        if (data.length)
-          return { lat: +data[0].lat, lng: +data[0].lon, provider: "Nominatim" };
-        return null;
       }
 
-      async function geocodePhoton(address) {
-        const params = new URLSearchParams({
-          q: address + ", Lisboa, Portugal",
-          limit: "1",
-          lat: "38.72",
-          lon: "-9.14",
+      function renderRows(rows) {
+        const plotted = [];
+        const missing = [];
+        rows.forEach((row) => {
+          const lat = Number(row.lat);
+          const lng = Number(row.lng);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            missing.push(row);
+            return;
+          }
+          const marker = L.marker([lat, lng], {
+            title: row.name,
+            icon: markerIcon(row.item_type),
+          }).addTo(map);
+          marker.on("click", () => showInfo(row));
+          plotted.push(marker);
         });
-        const res = await fetch("https://photon.komoot.io/api/?" + params);
-        if (!res.ok) throw new Error("photon " + res.status);
-        const data = await res.json();
-        if (data.features && data.features.length) {
-          const c = data.features[0].geometry.coordinates;
-          return { lat: c[1], lng: c[0], provider: "Photon" };
+
+        if (plotted.length) {
+          map.fitBounds(L.featureGroup(plotted).getBounds().pad(0.12));
         }
-        return null;
+
+        statusEl.textContent = ` · ${plotted.length} pins`;
+        if (missing.length)
+          statusEl.textContent += `, ${missing.length} missing coordinates`;
       }
 
-      async function geocodeOne(r) {
-        if (cache[r.address]) return cache[r.address];
-        let hit = null;
-        try {
-          hit = await geocodeNominatim(r.address);
-        } catch (e) {
-          /* fall through to Photon */
-        }
-        if (!hit) {
-          try {
-            hit = await geocodePhoton(r.address);
-          } catch (e) {
-            /* keep approximate */
-          }
-        }
-        if (hit && inLisbon(hit.lat, hit.lng)) {
-          cache[r.address] = hit;
-          saveCache();
-          return hit;
-        }
-        return null;
-      }
-
-      async function refinePins() {
-        if (typeof fetch !== "function") return;
-        const todo = RESTAURANTS.filter((r) => !r.baked);
-        let done = 0;
-        let improved = 0;
-        let failed = 0;
-        for (const r of todo) {
-          const wasCached = !!cache[r.address];
-          r.coordSrc = "pending";
-          if (activeRestaurant === r) showInfo(r);
-          let hit = null;
-          try {
-            hit = await geocodeOne(r);
-          } catch (e) {
-            /* ignore — handled as a failure below */
-          }
-          if (hit) {
-            r.marker.setLatLng([hit.lat, hit.lng]);
-            r.lat = hit.lat;
-            r.lng = hit.lng;
-            r.coordSrc = "geocoded";
-            r.coordProvider = hit.provider;
-            improved++;
-          } else {
-            r.coordSrc = "failed";
-            failed++;
-          }
-          if (activeRestaurant === r) showInfo(r); // refresh an open panel
-          done++;
-          statusEl.textContent = ` · refining locations… ${done}/${todo.length}`;
-          // Respect the free Nominatim endpoint (~1 req/s) — but only when we
-          // actually hit the network. Cache hits stay instant.
-          if (!wasCached) await sleep(1100);
-        }
-        if (improved && !userMoved) fitAll();
-        const parts = [];
-        if (improved) parts.push(`${improved} refined`);
-        if (failed) parts.push(`${failed} unverified`);
-        statusEl.textContent = parts.length ? " · " + parts.join(", ") : "";
-        if (statusEl.textContent)
-          setTimeout(() => {
-            statusEl.textContent = "";
-          }, 5000);
-        // Console helper to bake the geocoded coordinates back into the source.
-        if (improved)
-          console.info(
-            "lisboa: run exportLisboaCoords() to copy geocoded coordinates for baking into index.html",
-          );
-      }
-
-      // Dev helper — dump current (post-geocode) coordinates as JSON so they can
-      // be pasted back and baked into RESTAURANTS. Run in the browser console.
-      window.exportLisboaCoords = () =>
-        JSON.stringify(
-          RESTAURANTS.map((r) => ({
-            name: r.name,
-            lat: +Number(r.lat).toFixed(6),
-            lng: +Number(r.lng).toFixed(6),
-            src: r.coordSrc,
-            provider: r.coordProvider || null,
-          })),
-          null,
-          2,
-        );
-
-      refinePins();
+      Papa.parse(CSV_URL, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete(results) {
+          renderRows(results.data);
+        },
+        error(error) {
+          statusEl.textContent = " · CSV failed to load";
+          console.error(error);
+        },
+      });
     </script>
   </body>
 </html>
