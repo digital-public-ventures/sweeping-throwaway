@@ -1,0 +1,763 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - link [ref=e2] [cursor=pointer]:
+      - /url: "#main-container"
+      - text: Go to the content
+    - link [ref=e3] [cursor=pointer]:
+      - /url: "#site-footer"
+      - text: Go to the footer
+  - iframe [ref=e7]:
+    
+  - banner [ref=e8]:
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - link [ref=e16] [cursor=pointer]:
+          - /url: https://www.timeout.com/lisbon
+          - img [ref=e18]
+        - generic [ref=e28] [cursor=pointer]:
+          - generic [ref=e29]: Lisbon
+          - img [ref=e30]
+      - list [ref=e35]:
+        - listitem [ref=e36]:
+          - link "Explore Cities" [ref=e37] [cursor=pointer]:
+            - /url: https://www.timeout.com
+        - listitem [ref=e38]:
+          - link "Time Out Markets" [ref=e39] [cursor=pointer]:
+            - /url: /time-out-market
+      - generic [ref=e40]:
+        - link "Subscribe" [ref=e42] [cursor=pointer]:
+          - /url: /lisbon/newsletter
+          - generic [ref=e43]: Subscribe
+        - link "Search" [ref=e44] [cursor=pointer]:
+          - /url: https://www.timeout.com/lisbon/search
+          - img [ref=e45]
+          - generic [ref=e47]: Search
+        - img [ref=e50] [cursor=pointer]
+    - navigation [ref=e57]:
+      - list [ref=e58]:
+        - listitem [ref=e59]:
+          - link "Things to Do" [ref=e60] [cursor=pointer]:
+            - /url: /lisbon/things-to-do
+        - listitem [ref=e61]:
+          - link "Restaurants" [ref=e62] [cursor=pointer]:
+            - /url: /lisbon/restaurants
+        - listitem [ref=e63]:
+          - link "Arts & Culture" [ref=e64] [cursor=pointer]:
+            - /url: /lisbon/culture
+        - listitem [ref=e65]:
+          - link "Nightlife" [ref=e66] [cursor=pointer]:
+            - /url: /lisbon/nightlife
+        - listitem [ref=e67]:
+          - link "Hotels" [ref=e68] [cursor=pointer]:
+            - /url: /lisbon/hotels
+        - listitem [ref=e69]:
+          - link "Time Out Market" [ref=e70] [cursor=pointer]:
+            - /url: /time-out-market-lisboa
+    - generic:
+      - img [ref=e72] [cursor=pointer]
+      - generic [ref=e84]:
+        - link "twitter" [ref=e85] [cursor=pointer]:
+          - /url: http://twitter.com/timeoutlisboa
+          - generic [ref=e86]: twitter
+          - img [ref=e87]
+        - link "facebook" [ref=e89] [cursor=pointer]:
+          - /url: https://www.facebook.com/TimeOutLisboa
+          - generic [ref=e90]: facebook
+          - img [ref=e91]
+        - link "instagram" [ref=e93] [cursor=pointer]:
+          - /url: https://www.instagram.com/timeoutlisboa/
+          - generic [ref=e94]: instagram
+          - img [ref=e95]
+  - main [ref=e99]:
+    - generic [ref=e100]:
+      - generic [ref=e101]:
+        - generic [ref=e102]:
+          - generic [ref=e103]:
+            - figure "©Inês Calado Rosa" [ref=e105]:
+              - img "pensão amor" [ref=e107]
+              - generic [ref=e109]: ©Inês Calado Rosa
+            - generic [ref=e110]:
+              - heading "The 14 best places to listen to jazz in Lisbon" [level=1] [ref=e111]
+              - paragraph [ref=e112]: From lively bars to cosy corners, Lisbon's jazz bars have something for everyone
+              - time [ref=e114]: Thursday 7 November 2024
+              - generic [ref=e116] [cursor=pointer]:
+                - img [ref=e117]
+                - generic [ref=e119]: Share
+              - generic [ref=e122]:
+                - generic [ref=e124]:
+                  - text: Written by
+                  - generic [ref=e125]:
+                    - link "Miguel Branco" [ref=e126] [cursor=pointer]:
+                      - /url: https://www.timeout.com/profile/miguel-branco
+                    - text: "&"
+                  - link "Tiago Neto" [ref=e128] [cursor=pointer]:
+                    - /url: https://www.timeout.com/profile/tiago-neto
+                - generic [ref=e129]:
+                  - text: "Written by:"
+                  - link "Teresa David" [ref=e131] [cursor=pointer]:
+                    - /url: https://www.timeout.com/profile/teresa-david
+                - generic [ref=e132]:
+                  - text: "Translated by:"
+                  - link "Olivia Simpson" [ref=e134] [cursor=pointer]:
+                    - /url: https://www.timeout.com/profile/olivia-simpson
+          - generic [ref=e135]:
+            - paragraph [ref=e136]:
+              - text: "Lisbon’s music scene is thriving: if you want something traditional, there are"
+              - link "wonderful fado bars" [ref=e137] [cursor=pointer]:
+                - /url: https://www.timeout.com/lisbon/music/the-best-places-to-listen-to-fado-in-lisbon
+                - text: wonderful
+                - emphasis [ref=e138]: fado
+                - text: bars
+              - text: ; if you want a big night,
+              - link "Lisbon’s best clubs" [ref=e139] [cursor=pointer]:
+                - /url: https://www.timeout.com/lisbon/nightlife/the-best-lisbon-clubs
+              - text: have something to suit every taste; and if you want something a little more sophisticated, the city’s jazz bars have just what you’re looking for.
+            - paragraph [ref=e140]: "That’s not to say that all of the jazz bars on this list are genteel spots where people sip martinis and quietly nod along to the music. Our team of local editors have rounded up quite the range of jazz locales: there’s Pensão Amor, with its storied history; there’s wine and cocktail specialists, Bacchanal; and there are cultural centres, like Fábrica de Braço de Prata, which host jazz nights amongst the varied programming. With such a mix of places, even the jazz-adverse are sure to be won over."
+            - paragraph [ref=e141]:
+              - strong [ref=e142]: "RECOMMENDED:"
+            - paragraph [ref=e143]:
+              - strong [ref=e144]:
+                - text: 🍴 The best
+                - link "restaurants in Lisbon" [ref=e145] [cursor=pointer]:
+                  - /url: https://www.timeout.com/lisbon/restaurants/the-best-lisbon-restaurants
+              - strong [ref=e146]:
+                - text: 🏠 The best
+                - link "Airbnbs in Lisbon" [ref=e147] [cursor=pointer]:
+                  - /url: https://www.timeout.com/lisbon/hotels/the-best-airbnb-venues-in-lisbon
+              - strong [ref=e148]:
+                - text: 🎭 The best
+                - link "things to do in Lisbon" [ref=e149] [cursor=pointer]:
+                  - /url: https://www.timeout.com/lisbon/things-to-do/the-best-things-to-do-in-lisbon
+              - strong [ref=e150]:
+                - text: 🛍️ The best
+                - link "shops in Lisbon" [ref=e151] [cursor=pointer]:
+                  - /url: https://www.timeout.com/lisbon/shopping/the-best-shops-in-lisbon
+              - strong [ref=e152]:
+                - text: 🏨 The best
+                - link "hotels in Lisbon" [ref=e153] [cursor=pointer]:
+                  - /url: https://www.timeout.com/lisbon/hotels/the-coolest-hotels-in-lisbon
+            - paragraph [ref=e154]:
+              - emphasis [ref=e155]:
+                - text: This guide was written by the editorial team at
+                - link "Time Out Lisbon" [ref=e156] [cursor=pointer]:
+                  - /url: https://www.timeout.com/lisbon
+                - text: . At Time Out, all of our
+                - link "travel guides" [ref=e157] [cursor=pointer]:
+                  - /url: https://www.timeout.com/travel/travel-guides
+                - text: are written by local writers who know their cities inside out. For more about how we curate, see our
+                - link "editorial guidelines" [ref=e158] [cursor=pointer]:
+                  - /url: https://www.timeout.com/about/editorial-guidelines
+                - text: .
+        - generic [ref=e159]:
+          - heading "The best Lisbon jazz bars" [level=2] [ref=e160]:
+            - generic [ref=e161]: The best Lisbon jazz bars
+          - generic [ref=e162]:
+            - article [ref=e163]:
+              - generic [ref=e164]:
+                - link "1. Foxtrot" [ref=e166] [cursor=pointer]:
+                  - /url: /lisbon/bars-and-pubs/foxtrot
+                  - heading "1. Foxtrot" [level=3] [ref=e167]
+                - list [ref=e170]:
+                  - listitem [ref=e171]:
+                    - generic [ref=e172]: Chiado/Cais do Sodré
+                - link "Foxtrot ©Manuel Manso" [ref=e174] [cursor=pointer]:
+                  - /url: /lisbon/bars-and-pubs/foxtrot
+                  - img "Foxtrot" [ref=e176]
+                  - generic [ref=e178]: ©Manuel Manso
+                - paragraph [ref=e182]:
+                  - text: Foxtrot is an old English-style bar with valet parking, which is handy in this area, and a room with a fireplace, making it perfect for winter. Located in São Bento, near the Assembly of the Republic, it serves
+                  - emphasis [ref=e183]: lambretas
+                  - text: (small 15 cl beers). It’s a Lisbon classic, created by Luís Pinto Coelho, an entrepreneur who passed away in 2012 and also brought us Procópio, A Paródia, and Pavilhão Chinês.
+                - link "Read more" [ref=e186] [cursor=pointer]:
+                  - /url: /lisbon/bars-and-pubs/foxtrot
+              - generic [ref=e189]:
+                - generic [ref=e190]:
+                  - paragraph [ref=e191]: Been there, done that? Think again, my friend.
+                  - generic [ref=e192]: Sign up to our newsletter to enjoy Time Out without spending a thing (as well as options when you're feeling flush).
+                - generic [ref=e193]:
+                  - generic [ref=e194]:
+                    - generic [ref=e195]: Email address
+                    - textbox "Email address" [ref=e196]
+                  - button "Subscribe" [ref=e199] [cursor=pointer]
+                - paragraph [ref=e201]:
+                  - text: By entering your email address you agree to our
+                  - link "Terms of Use" [ref=e202] [cursor=pointer]:
+                    - /url: https://www.timeout.com/terms-of-use
+                  - text: and
+                  - link "Privacy Policy" [ref=e203] [cursor=pointer]:
+                    - /url: https://www.timeout.com/privacy-notice
+                  - text: and consent to receive emails from Time Out about news, events, offers and partner promotions.
+            - article [ref=e204]:
+              - generic [ref=e205]:
+                - link "2. Red Frog" [ref=e207] [cursor=pointer]:
+                  - /url: /lisbon/nightlife/red-frog
+                  - heading "2. Red Frog" [level=3] [ref=e208]
+                - list [ref=e211]:
+                  - listitem [ref=e212]:
+                    - generic [ref=e213]: Nightlife
+                  - listitem [ref=e214]:
+                    - generic [ref=e215]: Late-night bars
+                  - listitem [ref=e216]:
+                    - generic [ref=e217]: Avenida da Liberdade
+                - link "Red Frog © Mariana Valle Lima" [ref=e219] [cursor=pointer]:
+                  - /url: /lisbon/nightlife/red-frog
+                  - img "Red Frog" [ref=e221]
+                  - generic [ref=e223]: © Mariana Valle Lima
+                - paragraph [ref=e227]:
+                  - text: Red Frog is, undeniably, one of the best bars in Lisbon. It’s also the most hidden, so it’s perfect for those looking for some privacy. This bar within another bar (
+                  - link "Monkey Mash" [ref=e228] [cursor=pointer]:
+                    - /url: https://www.timeout.com/lisbon/bars-and-pubs/monkey-mash
+                  - text: ) has been on the list of the world’s top 100 bars for several years. The cocktails tend to get all the credit, but the atmosphere also plays a part, with swing and jazz music filling the space.
+                - link "Read more" [ref=e231] [cursor=pointer]:
+                  - /url: /lisbon/nightlife/red-frog
+            - generic [ref=e235]: Advertising
+            - article [ref=e238]:
+              - generic [ref=e239]:
+                - heading "3. Café Dias" [level=3] [ref=e242]
+                - generic [ref=e244]:
+                  - img "Café Dias" [ref=e246]
+                  - generic [ref=e248]: Café Dias/ divulgação
+                - paragraph [ref=e252]:
+                  - generic [ref=e253]:
+                    - link "Café Dias" [ref=e254] [cursor=pointer]:
+                      - /url: https://www.facebook.com/pedro.dias.1969
+                    - text: "is one of the city’s jazz epicentres, with jam sessions that get the place shaking. Most of the schedule is shared on social media. However, at Café Dias (named after its founder Pedro Dias) the appeal goes well beyond the music. The best approach is to head down there, order one of the many snacks, and get ready to enjoy good music with a full belly. But be aware: coffees are only served when the music stops (after all, it’s the music that matters)."
+            - article [ref=e255]:
+              - generic [ref=e256]:
+                - heading "4. Social B" [level=3] [ref=e259]
+                - paragraph [ref=e263]:
+                  - text: Mikas, the founder of legendary Lisbon nightlife spots like Bicaense and Clube Ferroviário, introduced
+                  - link "Social B" [ref=e264] [cursor=pointer]:
+                    - /url: https://www.instagram.com/socialb_lisboa/?hl=en
+                  - text: in 2018, placing it between Santos and Cais do Sodré. It has a cosy, homey atmosphere and is perfect for meeting friends after work for a drink and some music (no need to check what’s on – the selection never disappoints). Plus, there’s a range of nibbles too.
+            - generic [ref=e268]: Advertising
+            - article [ref=e271]:
+              - generic [ref=e272]:
+                - heading "5. Má Língua" [level=3] [ref=e275]
+                - generic [ref=e277]:
+                  - img "Má Língua" [ref=e279]
+                  - generic [ref=e281]: "Fotografia: Manuel Manso"
+                - paragraph [ref=e285]:
+                  - text: When Liliana Escalhão first moved from the small town of Castelo Branco to study in Lisbon, she set up home in Graça. After being forced to close Primeiro Andar at the Ateneu Comercial de Lisboa, she wanted to open another bar/restaurant/cultural association in the neighbourhood; and so, together with Vítor Augusto, she opened
+                  - link "Má Língua" [ref=e286] [cursor=pointer]:
+                    - /url: https://www.instagram.com/ma_lingua/?hl=en
+                  - text: ", where you can grab a bite and enjoy the Graça nightlife. Every so often, live jazz takes over the downstairs stage, so keep an eye out!"
+            - article [ref=e289]:
+              - generic [ref=e290]:
+                - heading "6. Pensão Amor" [level=3] [ref=e293]
+                - generic [ref=e295]:
+                  - img "Pensão Amor" [ref=e297]
+                  - generic [ref=e299]: ©Inês Calado Rosa
+                - paragraph [ref=e303]:
+                  - link "Pensão Amor" [ref=e304] [cursor=pointer]:
+                    - /url: https://pensaoamor.com/en/
+                  - text: is a multifaceted place. Once a brothel frequented by sailors, in recent years it has become a well-known spot for drinks and atmosphere, and it's one of the busiest stops in Cais do Sodré. Whether it’s a jazz concert, a burlesque show, a theatre performance, a DJ set, or a book launch, there’s always something going on here.
+            - generic [ref=e308]: Advertising
+            - article [ref=e311]:
+              - generic [ref=e312]:
+                - link "7. Botequim" [ref=e314] [cursor=pointer]:
+                  - /url: /lisbon/restaurants/botequim
+                  - heading "7. Botequim" [level=3] [ref=e315]
+                - list [ref=e318]:
+                  - listitem [ref=e319]:
+                    - generic [ref=e320]: São Vicente
+                - 'link "Botequim Fotografia: Arlindo Camacho" [ref=e322] [cursor=pointer]':
+                  - /url: /lisbon/restaurants/botequim
+                  - img "Botequim" [ref=e324]
+                  - generic [ref=e326]: "Fotografia: Arlindo Camacho"
+                - paragraph [ref=e330]: Botequim, in Graça, was closed for 15 years, but the presence of poet Natália Correia (who first opened it in 1968) lives on – and not just in photographs. It’s now been modernised, but Botequim still has the old dark wood bar and has retained some of its original intellectual bohemian spirit. With light bites on offer and jazz flowing from the speakers, the stage is set for an ideal evening.
+                - link "Read more" [ref=e333] [cursor=pointer]:
+                  - /url: /lisbon/restaurants/botequim
+            - article [ref=e334]:
+              - generic [ref=e335]:
+                - link "8. Procópio" [ref=e337] [cursor=pointer]:
+                  - /url: /lisbon/bars-and-pubs/procopio
+                  - heading "8. Procópio" [level=3] [ref=e338]
+                - list [ref=e341]:
+                  - listitem [ref=e342]:
+                    - generic [ref=e343]: Avenida da Liberdade/Príncipe Real
+                - link "Procópio Mariana Valle Lima" [ref=e345] [cursor=pointer]:
+                  - /url: /lisbon/bars-and-pubs/procopio
+                  - img "Procópio" [ref=e347]
+                  - generic [ref=e349]: Mariana Valle Lima
+                - paragraph [ref=e353]: Procópio was the first bar opened by collector and hotel manager Luís Pinto Coelho and has been in operation since 1972. The politicians Mário Soares and Sá Carneiro, as well as the comedian and actor Raul Solnado were all regulars in this space, which preserves many memories of the pre-revolution era within its walls. It had a retro style even back then, and that charm is even more pronounced now. The service remains very friendly, there’s a regular crowd who continue to visit time and again, and the soundtrack rarely strays far from jazz.
+                - link "Read more" [ref=e356] [cursor=pointer]:
+                  - /url: /lisbon/bars-and-pubs/procopio
+            - generic [ref=e360]: Advertising
+            - article [ref=e363]:
+              - generic [ref=e364]:
+                - link "9. Alface Hall" [ref=e366] [cursor=pointer]:
+                  - /url: /lisbon/clubs/alface-hall
+                  - heading "9. Alface Hall" [level=3] [ref=e367]
+                - list [ref=e370]:
+                  - listitem [ref=e371]:
+                    - generic [ref=e372]: Clubs
+                  - listitem [ref=e373]:
+                    - generic [ref=e374]: Bairro Alto
+                - link "Alface Hall ©DR/Facebook Alface Hall" [ref=e376] [cursor=pointer]:
+                  - /url: /lisbon/clubs/alface-hall
+                  - img "Alface Hall" [ref=e378]
+                  - generic [ref=e380]: ©DR/Facebook Alface Hall
+                - paragraph [ref=e384]: Bairro Alto is one of the few places where bars with live music are still surviving. Alface Hall is one of those bars, a small space with a distinct Bairro Alto vibe, with people crowding around the door – walk in and you’ll realise that the musicians are playing just half a metre inside. It’s also a boutique hostel with double rooms and dormitories available.
+                - link "Read more" [ref=e387] [cursor=pointer]:
+                  - /url: /lisbon/clubs/alface-hall
+            - article [ref=e388]:
+              - generic [ref=e389]:
+                - link "10. O Bom, O Mau e O Vilão" [ref=e391] [cursor=pointer]:
+                  - /url: /lisbon/nightlife/o-bom-o-mau-e-o-vilao-1
+                  - heading "10. O Bom, O Mau e O Vilão" [level=3] [ref=e392]
+                - list [ref=e395]:
+                  - listitem [ref=e396]:
+                    - generic [ref=e397]: Nightlife
+                  - listitem [ref=e398]:
+                    - generic [ref=e399]: Cais do Sodré
+                - link "O Bom, O Mau e O Vilão ©Ana Luzia" [ref=e401] [cursor=pointer]:
+                  - /url: /lisbon/nightlife/o-bom-o-mau-e-o-vilao-1
+                  - img "O Bom, O Mau e O Vilão" [ref=e403]
+                  - generic [ref=e405]: ©Ana Luzia
+                - paragraph [ref=e409]:
+                  - text: Whether it’s indie music, jam sessions or just good vibes, pick a room and make yourself at home in O Bom, O Mau e O Vilão (a name borrowed from the Portuguese title of Sergio Leone's film
+                  - emphasis [ref=e410]: The Good, The Bad and The Villain
+                  - text: ). This bar in Cais do Sodré opened in late November 2013 and has a varied programme that includes jazz concerts.
+                - link "Read more" [ref=e413] [cursor=pointer]:
+                  - /url: /lisbon/nightlife/o-bom-o-mau-e-o-vilao-1
+            - generic [ref=e415]:
+              - generic [ref=e416]: Recommended
+              - list [ref=e417]:
+                - listitem [ref=e418]:
+                  - article [ref=e419]:
+                    - link "How to eat like a local in Lisbon – the best local food to try How to eat like a local in Lisbon – the best local food to try" [ref=e420] [cursor=pointer]:
+                      - /url: /lisbon/restaurants/eat-like-a-local-in-lisbon
+                      - img "How to eat like a local in Lisbon – the best local food to try" [ref=e422]
+                      - generic [ref=e423]: How to eat like a local in Lisbon – the best local food to try
+                - listitem [ref=e424]:
+                  - article [ref=e425]:
+                    - link "The best rooftop bars in Lisbon for a cocktail with a view The best rooftop bars in Lisbon for a cocktail with a view" [ref=e426] [cursor=pointer]:
+                      - /url: /lisbon/bars-and-pubs/best-rooftop-bars-in-lisbon
+                      - img "The best rooftop bars in Lisbon for a cocktail with a view" [ref=e428]
+                      - generic [ref=e429]: The best rooftop bars in Lisbon for a cocktail with a view
+                - listitem [ref=e430]:
+                  - article [ref=e431]:
+                    - link "The best restaurants in Lisbon for 2026 The best restaurants in Lisbon for 2026" [ref=e432] [cursor=pointer]:
+                      - /url: /lisbon/restaurants/the-best-lisbon-restaurants
+                      - img "The best restaurants in Lisbon for 2026" [ref=e434]
+                      - generic [ref=e435]: The best restaurants in Lisbon for 2026
+                - listitem [ref=e436]:
+                  - article [ref=e437]:
+                    - link "All the Michelin-starred restaurants in Lisbon for 2026 All the Michelin-starred restaurants in Lisbon for 2026" [ref=e438] [cursor=pointer]:
+                      - /url: /lisbon/restaurants/all-the-michelin-star-restaurants-in-lisbon
+                      - img "All the Michelin-starred restaurants in Lisbon for 2026" [ref=e440]
+                      - generic [ref=e441]: All the Michelin-starred restaurants in Lisbon for 2026
+          - generic [ref=e443] [cursor=pointer]: Show more
+        - generic [ref=e444]:
+          - heading "Best of Lisbon" [level=2] [ref=e445]:
+            - generic [ref=e446]: Best of Lisbon
+          - generic [ref=e447]:
+            - article [ref=e448]:
+              - generic [ref=e449]:
+                - 'link "The 15 best Airbnbs in Lisbon: cobbled streets, sun-soaked terraces and all" [ref=e451] [cursor=pointer]':
+                  - /url: /lisbon/hotels/the-best-airbnb-venues-in-lisbon
+                  - 'heading "The 15 best Airbnbs in Lisbon: cobbled streets, sun-soaked terraces and all" [level=3] [ref=e452]'
+                - list [ref=e455]:
+                  - listitem [ref=e456]:
+                    - generic [ref=e457]: Hotels
+                - 'link "The 15 best Airbnbs in Lisbon: cobbled streets, sun-soaked terraces and all ©DR" [ref=e459] [cursor=pointer]':
+                  - /url: /lisbon/hotels/the-best-airbnb-venues-in-lisbon
+                  - 'img "The 15 best Airbnbs in Lisbon: cobbled streets, sun-soaked terraces and all" [ref=e461]'
+                  - generic [ref=e463]: ©DR
+                - generic [ref=e466]:
+                  - paragraph [ref=e467]:
+                    - link "Lisbon" [ref=e468] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon
+                    - text: has risen in popularity in recent years, and it's not surprising really. The Portuguese capital is cool, timeless, and beautiful, plus it's packed with plenty of
+                    - link "stuff to see and do" [ref=e469] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon/things-to-do/the-best-things-to-do-in-lisbon
+                    - text: . From castles and churches to
+                    - link "art galleries" [ref=e470] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon/museums/the-best-lisbon-museums
+                    - text: and
+                    - link "beaches" [ref=e471] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon/attractions/the-most-beautiful-lisbon-beaches
+                    - text: ", it's no wonder people flock from all over to get a taste of the city's culture. And of course, the"
+                    - link "characterful bars" [ref=e472] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon/bars-and-pubs/best-rooftop-bars-in-lisbon
+                    - text: and scrummy
+                    - link "restaurants" [ref=e473] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon/restaurants/all-the-michelin-star-restaurants-in-lisbon
+                    - text: make the trip special, too.
+                  - paragraph [ref=e474]: To keep up with the city's vibrant vibes, it makes sense to stay at one of the many Airbnbs in the city to complete the experience. From gorgeous apartment lofts with skyline terraces to designer flats, there's a huge choice of Airbnbs for all sorts of personalities, budgets, and needs. We've picked our favourite Lisbon Airbnbs for you to take a peek at.
+                  - paragraph [ref=e475]:
+                    - strong [ref=e476]: "RECOMMENDED:"
+                  - paragraph [ref=e477]:
+                    - strong [ref=e478]:
+                      - text: 🛍
+                      - link "The best things to do in Lisbon" [ref=e479] [cursor=pointer]:
+                        - /url: https://www.timeout.com/lisbon/things-to-do/the-best-things-to-do-in-lisbon
+                        - text: The best things to do in Lisbon
+                    - strong [ref=e480]: 🛏 The
+                    - strong [ref=e481]:
+                      - link "best hotels in Lisbon" [ref=e482] [cursor=pointer]:
+                        - /url: https://www.timeout.com/lisbon/hotels/the-best-hotels-in-lisbon
+                        - text: best hotels in Lisbon
+                    - strong [ref=e483]:
+                      - text: 🎺 The
+                      - link "best jazz bars in Lisbon" [ref=e484] [cursor=pointer]:
+                        - /url: https://www.timeout.com/lisbon/clubs/best-jazz-clubs-in-lisbon
+                  - paragraph [ref=e485]:
+                    - emphasis [ref=e487]: Who makes the cut? While we might not stay in every Airbnb featured, we've based our list on top reviews, hosts and amenities to find you the best stays. This article includes affiliate links. These links have no influence on our editorial content. For more information, see our
+                    - link "affiliate guidelines" [ref=e488] [cursor=pointer]:
+                      - /url: https://www.timeout.com/things-to-do/understanding-affiliate-links
+                      - emphasis [ref=e489]: affiliate guidelines
+                    - emphasis [ref=e490]: .
+                - link "Read more" [ref=e493] [cursor=pointer]:
+                  - /url: /lisbon/hotels/the-best-airbnb-venues-in-lisbon
+            - article [ref=e494]:
+              - generic [ref=e495]:
+                - link "The 32 best things to do in Lisbon" [ref=e497] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/the-best-things-to-do-in-lisbon
+                  - heading "The 32 best things to do in Lisbon" [level=3] [ref=e498]
+                - list [ref=e501]:
+                  - listitem [ref=e502]:
+                    - generic [ref=e503]: Things to do
+                - 'link "The 32 best things to do in Lisbon Photograph: Shutterstock" [ref=e505] [cursor=pointer]':
+                  - /url: /lisbon/things-to-do/the-best-things-to-do-in-lisbon
+                  - img "The 32 best things to do in Lisbon" [ref=e507]
+                  - generic [ref=e509]: "Photograph: Shutterstock"
+                - generic [ref=e512]:
+                  - paragraph [ref=e513]:
+                    - text: We’re going to come right and say it; Lisbon is one of the greatest cities on the planet. Don’t believe us? It won’t take long for the city to change your mind. It all starts with the aesthetics, and Lisbon offers up more beauty than you can shake the proverbial stick at. Throw in a conveyor belt of
+                    - link "world-class restaurants" [ref=e514] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon/restaurants/the-best-lisbon-restaurants
+                    - text: ", the"
+                    - link "best hotels" [ref=e515] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon/hotels/the-best-hotels-in-lisbon
+                    - text: in Portugal and an uncanny ability to look effortlessly stylish at every turn, and you’ve got yourself a life-changer.
+                  - paragraph [ref=e516]: As a result, the best things to do in Lisbon can read like a collection of the best things to do in life. You know, the bucket list stuff, bouncing from magnificent museum to the stunning street area via food, booze and more. Lisbon’s coolest neighbourhoods have plenty to offer, and this is the best of the best.
+                  - generic [ref=e554]:
+                    - generic [ref=e555]:
+                      - generic [ref=e556]: Editor's Pick
+                      - generic [ref=e557]:
+                        - text: Powered by
+                        - link "AnyClip" [ref=e558] [cursor=pointer]:
+                          - /url: https://anyclip.com/?source=right_branding
+                    - generic [ref=e561]:
+                      - region [ref=e562]:
+                        - generic [ref=e566]: O melhor do NOS Alive 2018
+                        - generic [ref=e570]: "826"
+                        - button "Play Video" [ref=e575] [cursor=pointer]:
+                          - generic [ref=e576]: Play Video
+                        - text:  
+                      - generic:
+                        - generic:
+                          - generic:
+                            - iframe [ref=e577]:
+                              
+                            - iframe [ref=e578]:
+                              
+                - link "Read more" [ref=e581] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/the-best-things-to-do-in-lisbon
+            - generic [ref=e585]: Advertising
+            - article [ref=e588]:
+              - generic [ref=e589]:
+                - link "Where to stay in Lisbon" [ref=e591] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/where-to-stay-in-lisbon
+                  - heading "Where to stay in Lisbon" [level=3] [ref=e592]
+                - list [ref=e595]:
+                  - listitem [ref=e596]:
+                    - generic [ref=e597]: Things to do
+                - 'link "Where to stay in Lisbon Fotografia: Manuel Manso" [ref=e599] [cursor=pointer]':
+                  - /url: /lisbon/things-to-do/where-to-stay-in-lisbon
+                  - img "Where to stay in Lisbon" [ref=e601]
+                  - generic [ref=e603]: "Fotografia: Manuel Manso"
+                - generic [ref=e606]:
+                  - paragraph [ref=e607]:
+                    - text: Sounds like you might be interested in staying in Lisbon? We don’t blame you. After all, it’s a city we
+                    - emphasis [ref=e608]: love
+                    - text: ", and that’s not just because it’s home to our very own"
+                    - link "Time Out Market Lisbon" [ref=e609] [cursor=pointer]:
+                      - /url: https://www.timeoutmarket.com/lisboa/en/
+                    - text: . It’s a city that has now firmly established itself as one of the most vibrant, fun and exciting places in Europe.
+                  - paragraph [ref=e610]:
+                    - text: There really is so much to do here. Want to spend a relaxing day at the beach or enjoy the lively
+                    - link "nightlife" [ref=e611] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon/nightlife/the-best-lisbon-clubs
+                    - text: of the city centre? Would a spot of history be your scene? Or would you prefer all mod cons? Whatever you’re looking for, Lisbon has got something to suit you, and we can help you find exactly what you’re after with our insider’s guide to Lisbon’s very best neighbourhoods. Here’s your ultimate guide to where to stay in Lisbon, with inspo and ideas to make your visit every bit as good as it should be. Enjoy!
+                  - paragraph [ref=e612]:
+                    - strong [ref=e613]:
+                      - text: "Recommended:"
+                      - link "the best hotels in Lisbon" [ref=e614] [cursor=pointer]:
+                        - /url: https://www.timeout.com/lisbon/hotels/the-best-hotels-in-lisbon
+                      - text: "Recommended:"
+                      - link "the best Airbnbs in Lisbon" [ref=e615] [cursor=pointer]:
+                        - /url: https://www.timeout.com/lisbon/hotels/the-best-airbnb-venues-in-lisbon
+                - link "Read more" [ref=e618] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/where-to-stay-in-lisbon
+            - article [ref=e619]:
+              - generic [ref=e620]:
+                - link "The best hotels in Lisbon" [ref=e622] [cursor=pointer]:
+                  - /url: /lisbon/hotels/the-best-hotels-in-lisbon
+                  - heading "The best hotels in Lisbon" [level=3] [ref=e623]
+                - list [ref=e626]:
+                  - listitem [ref=e627]:
+                    - generic [ref=e628]: Hotels
+                - 'link "The best hotels in Lisbon Fotografia: Arlndo Camacho" [ref=e630] [cursor=pointer]':
+                  - /url: /lisbon/hotels/the-best-hotels-in-lisbon
+                  - img "The best hotels in Lisbon" [ref=e632]
+                  - generic [ref=e634]: "Fotografia: Arlndo Camacho"
+                - generic [ref=e637]: "Are you in for a quick stay or a longer one? Did you come for romance or to hang out with friends? Is the family in tow or are you by your lonesome? Lottery winner or penny-pincher? Whatever your tourist profile or your ideal vacation are, you will find something to like among our collection of the best hotels in Lisbon. Make your pick and enjoy your stay. Recommended: Best things to do in Lisbon"
+                - link "Read more" [ref=e640] [cursor=pointer]:
+                  - /url: /lisbon/hotels/the-best-hotels-in-lisbon
+            - generic [ref=e644]: Advertising
+            - article [ref=e647]:
+              - generic [ref=e648]:
+                - link "18 of the best attractions in Lisbon" [ref=e650] [cursor=pointer]:
+                  - /url: /lisbon/attractions/the-best-lisbon-attractions
+                  - heading "18 of the best attractions in Lisbon" [level=3] [ref=e651]
+                - list [ref=e654]:
+                  - listitem [ref=e655]:
+                    - generic [ref=e656]: Attractions
+                - link "18 of the best attractions in Lisbon ©Arlindo Camacho" [ref=e658] [cursor=pointer]:
+                  - /url: /lisbon/attractions/the-best-lisbon-attractions
+                  - img "18 of the best attractions in Lisbon" [ref=e660]
+                  - generic [ref=e662]: ©Arlindo Camacho
+                - generic [ref=e665]:
+                  - paragraph [ref=e666]: As one of the greatest cities in the world, frankly it's a wonder that we managed to narrow down all the best things to do to a list of just 52. Think of our selection as a taster – something to satisfy your initial cravings and leave you wanting more.
+                  - paragraph [ref=e667]:
+                    - text: Take Belém Tower, for instance, this
+                    - link "waterfront" [ref=e668] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon/things-to-do/along-the-river-seven-things-to-do-near-the-river-in-lisbon
+                    - text: landmark makes for a great introduction to Lisbon's numerous nearby UNESCO World Heritage sites. Or climb up to Miradouro da Graça to take in one of the city's many magnificent
+                    - link "views" [ref=e669] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon/attractions/the-best-viewpoints-in-lisbon
+                    - text: . And don't forget to visit the
+                    - link "Time Out Market" [ref=e670] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon/restaurants/21-dishes-you-need-to-try-at-the-time-out-market-lisboa
+                    - text: ", of course, for a literal taster of the delicious culinary offerings."
+                  - paragraph [ref=e671]:
+                    - strong [ref=e672]: "Recommended:"
+                    - text: Need a place to stay but can’t decide? Find your perfect getaway spot with our guide to
+                    - link "Lisbon’s best neighbourhoods" [ref=e673] [cursor=pointer]:
+                      - /url: https://www.timeout.com/lisbon/things-to-do/the-best-neighbourhoods-in-lisbon
+                    - text: .
+                - link "Read more" [ref=e676] [cursor=pointer]:
+                  - /url: /lisbon/attractions/the-best-lisbon-attractions
+            - article [ref=e677]:
+              - generic [ref=e678]:
+                - link "The 33 coolest things to do in Lisbon" [ref=e680] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/the-best-things-to-do-in-lisbon
+                  - heading "The 33 coolest things to do in Lisbon" [level=3] [ref=e681]
+                - list [ref=e684]:
+                  - listitem [ref=e685]:
+                    - generic [ref=e686]: Things to do
+                - link "The 33 coolest things to do in Lisbon © Arlindo Camacho" [ref=e688] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/the-best-things-to-do-in-lisbon
+                  - img "The 33 coolest things to do in Lisbon" [ref=e690]
+                  - generic [ref=e692]: © Arlindo Camacho
+                - paragraph [ref=e696]: "With its world-class restaurants, excelling in seafood, its reputation for style and long pedigree in art and culture, Portugal’s first city remains high on every discerning weekend-breaker’s hit-list. Want to know what to do in Lisbon? Wether you’re just here for a short visit (and if so, be sure to check out our best hotels list for a place to stay), or thinking of extending your stay permanently, this checklist will help you find the very best of Lisbon. Discover the landmarks, get a taste of some of that typical Portuguese food or uncover world flavours in the most typical neighbourhoods around the city. Done something on this list and loved it? Share it with the hashtag #TimeOutDoList and tag @TimeOutEverywhere. Find out more about how Time Out selects the very best things to do all over the world."
+                - link "Read more" [ref=e699] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/the-best-things-to-do-in-lisbon
+            - generic [ref=e703]: Advertising
+            - article [ref=e706]:
+              - generic [ref=e707]:
+                - link "Free things to do in Cascais" [ref=e709] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/free-things-to-do-in-cascais
+                  - heading "Free things to do in Cascais" [level=3] [ref=e710]
+                - list [ref=e713]:
+                  - listitem [ref=e714]:
+                    - generic [ref=e715]: Things to do
+                - link "Free things to do in Cascais" [ref=e717] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/free-things-to-do-in-cascais
+                  - img "Free things to do in Cascais" [ref=e719]
+                - paragraph [ref=e723]: "Let's be honest here. There is nothing better than being able to head out town without breaking bank. So don't worry too much about setting budgets yet, there are many ways of exploring the city without spending one euro. It seems that the best things in life actually do come free - in Cascais at least they do. Whether it be going to museums or enjoying beautiful landscapes. There is a bit for everyone. Recommended: The best way to spend 48 hours in Cascais"
+                - link "Read more" [ref=e726] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/free-things-to-do-in-cascais
+            - article [ref=e727]:
+              - generic [ref=e728]:
+                - link "The best things to do in Sintra" [ref=e730] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/fun-things-to-do-near-lisbon-visit-sintra
+                  - heading "The best things to do in Sintra" [level=3] [ref=e731]
+                - list [ref=e734]:
+                  - listitem [ref=e735]:
+                    - generic [ref=e736]: Things to do
+                - link "The best things to do in Sintra ©Quinta da Regaleira" [ref=e738] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/fun-things-to-do-near-lisbon-visit-sintra
+                  - img "The best things to do in Sintra" [ref=e740]
+                  - generic [ref=e742]: ©Quinta da Regaleira
+                - generic [ref=e745]:
+                  - paragraph [ref=e746]: Sintra is a postcard. A postcard full of places cramming with tourists, of course, but also of quiet places to contemplate. And, above all, many tables to rest from the tour and refill your energy. With its fine architecture, significant monuments and museums and hidden treasures, is maybe the best choice for you if you are looking for some out-of-town hours. So save one day on your schedule, put on your hiking boots and visit Sintra, less than one hour away from Lisbon. You won’t regret it – scout's honor!
+                  - paragraph [ref=e747]:
+                    - 'link "Recommended: The 33 coolest things to do in Lisbon" [ref=e748] [cursor=pointer]':
+                      - /url: https://www.timeout.com/lisbon/things-to-do/the-best-things-to-do-in-lisbon
+                - link "Read more" [ref=e751] [cursor=pointer]:
+                  - /url: /lisbon/things-to-do/fun-things-to-do-near-lisbon-visit-sintra
+            - generic [ref=e755]: Advertising
+            - article [ref=e758]:
+              - generic [ref=e759]:
+                - link "All the Michelin-star restaurants in Lisbon" [ref=e761] [cursor=pointer]:
+                  - /url: /lisbon/restaurants/all-the-michelin-star-restaurants-in-lisbon
+                  - heading "All the Michelin-star restaurants in Lisbon" [level=3] [ref=e762]
+                - 'link "All the Michelin-star restaurants in Lisbon Fotografia: Arlindo Camacho" [ref=e764] [cursor=pointer]':
+                  - /url: /lisbon/restaurants/all-the-michelin-star-restaurants-in-lisbon
+                  - img "All the Michelin-star restaurants in Lisbon" [ref=e766]
+                  - generic [ref=e768]: "Fotografia: Arlindo Camacho"
+                - generic [ref=e771]: "The first Michelin Guide gala to be held in Portugal dictated just two more stars for Lisbon restaurants in the 2018-2019 season. In total there are now eight restaurants in the great Lisbon area that can proudly boast this star from the most important gastronomic guide in the world. You can find them from downtown Cascais to a quick trip to Sintra, or just by walking up and down Chiado, now considered the center of high gastronomy in Lisbon. All of them are, of course, on our meticulously compiled list of the best restaurants in Lisbon, so be sure to check it out if you’re looking to find some more affordable, yet still delicious options in the city. If you want to try the best of the city, all under one roof, then the Time Out Market is the place to visit. Recommended: The 148 best restaurants in Lisbon"
+                - link "Read more" [ref=e774] [cursor=pointer]:
+                  - /url: /lisbon/restaurants/all-the-michelin-star-restaurants-in-lisbon
+            - article [ref=e775]:
+              - generic [ref=e776]:
+                - link "Open-air artwork to peek at and take pics in Lisbon" [ref=e778] [cursor=pointer]:
+                  - /url: /lisbon/art/open-air-artwork-to-peek-at-and-take-pics-in-lisbon
+                  - heading "Open-air artwork to peek at and take pics in Lisbon" [level=3] [ref=e779]
+                - list [ref=e782]:
+                  - listitem [ref=e783]:
+                    - generic [ref=e784]: Art
+                - link "Open-air artwork to peek at and take pics in Lisbon ©DR" [ref=e786] [cursor=pointer]:
+                  - /url: /lisbon/art/open-air-artwork-to-peek-at-and-take-pics-in-lisbon
+                  - img "Open-air artwork to peek at and take pics in Lisbon" [ref=e788]
+                  - generic [ref=e790]: ©DR
+                - generic [ref=e793]:
+                  - paragraph [ref=e794]: Vhils, Bordalo II, Aka Corleone, Tamara Alves or Mário Belém are some of the most impressive names in the urban art scene in Lisbon. In recent years, the city has become one of the world's capital of urban art, with major names like Obey Giant, Eduardo Kobra or Os Gémeos leaving their mark at Lisbon's walls. But seeing all the best works in one day might be difficult, so embark with us on an alternative tour around the city.
+                  - paragraph [ref=e795]:
+                    - 'link "Recommended: The 33 coolest things to do in Lisbon" [ref=e796] [cursor=pointer]':
+                      - /url: https://www.timeout.com/lisbon/things-to-do/the-best-things-to-do-in-lisbon
+                - link "Read more" [ref=e799] [cursor=pointer]:
+                  - /url: /lisbon/art/open-air-artwork-to-peek-at-and-take-pics-in-lisbon
+          - generic [ref=e801] [cursor=pointer]: Show more
+        - generic [ref=e805]:
+          - generic [ref=e806]:
+            - paragraph [ref=e807]: Been there, done that? Think again, my friend.
+            - generic [ref=e808]: Sign up to our newsletter to enjoy Time Out without spending a thing (as well as options when you're feeling flush).
+          - generic [ref=e809]:
+            - generic [ref=e810]:
+              - generic [ref=e811]: Enter email address
+              - textbox "Enter email address" [ref=e812]
+            - button "Subscribe" [ref=e815] [cursor=pointer]
+          - paragraph [ref=e817]:
+            - text: By entering your email address you agree to our
+            - link "Terms of Use" [ref=e818] [cursor=pointer]:
+              - /url: https://www.timeout.com/terms-of-use
+            - text: and
+            - link "Privacy Policy" [ref=e819] [cursor=pointer]:
+              - /url: https://www.timeout.com/privacy-notice
+            - text: and consent to receive emails from Time Out about news, events, offers and partner promotions.
+      - complementary [ref=e820]:
+        - iframe [ref=e825]:
+          - generic [ref=f20e1]:
+            - link [ref=f20e2] [cursor=pointer]:
+              - /url: https://googleads.g.doubleclick.net/pcs/click?xai=AKAOjstuD-z4RLJVZuFBpLoDBiQmHYbRGZN6vFmI2Vxc9jYBmurUmXX79s-wQgFm20SjO7xhQ2iSFRorB9LM-nrk0aGktANh249OR6AoHfTrHH9MT6ZhnHAlPuX1jxb8TVxsOirwheu6xpDZzZ-vT-Y9ODF3xR6hrhPsLs9G7mEsUnzba-OyhNiP3eRxqfTXCjrw5cOABBh-YJk4p6nuQMgliStodoHsLH8iYzgZ74B15_mpHH9kwiD8DBt_kprofDhnksD_XqODmjlO0_2VNmfc-FzMY-Xhak-kWPocMJ2aq63Z85P8mensPdjcluZxLw9OFVf1pYb1VLPdEPqZGnVDDFbIq5DjhAQxcbYuGArTpGkY5zs8_XpLR_zrskQtg15hChFed3SDsjQ2DjPCz8TondWV2dzV_g&sai=AMfl-YR49vwuHJuV5L62SPB3qN6I58a8wOqBRjbC28QFYDx_3b20ZEkqe5PiZT2dHbkNhEdDbcl1YExoMByt08Ww_YR7A07-FV5bNZiOEgjlXW591GoTNP89ncn_Dg3rrPjLCX3ge0dr8fFl3-uVwxwIsLMX7Ys6dXfnn5pLt4pHTqJEKJP4IAypEgPsIbsTvFlekz86V9iyqwLFJPQ-Pwb-L_hisBwZhs-9Ee3r3L7Fwoj19nsonuAiyKZwntoNo7p8EGAO7lUjvY5_DU2n_Kw4b9q50GWgkN7k9ed2X06zHIaQvjo7OPEOSgGKXV9JUC_nDInoL_gVy6EDJmvBnvvyzSu3HnCaS95EPqAT6Jh6QwkCg1tMg9uKflw&sig=Cg0ArKJSzBfY3qPUTnjq&fbs_aeid=%5Bgw_fbsaeid%5D&adurl=https://forms.timeout.com/us-en-travel-list-campaign-2025-copy-24cf6577e21f
+            - img [ref=f20e6] [cursor=pointer]
+            - button [ref=f20e9] [cursor=pointer]:
+              - img [ref=f20e10]
+    - generic [ref=e829]:
+      - complementary
+  - generic [ref=e830]:
+    - link "Back to Top" [ref=e832] [cursor=pointer]:
+      - /url: "#top"
+      - img [ref=e834]
+      - text: Back to Top
+    - generic [ref=e840]:
+      - generic [ref=e841]:
+        - link "Timeout" [ref=e842] [cursor=pointer]:
+          - /url: https://www.timeout.com/lisbon
+          - img "Timeout" [ref=e843]
+        - generic [ref=e852]:
+          - paragraph [ref=e854]: Get us in your inbox
+          - generic [ref=e855]:
+            - generic [ref=e856]:
+              - generic [ref=e857]: Email address
+              - textbox "Email address" [ref=e858]
+            - button "Subscribe" [ref=e861] [cursor=pointer]
+          - paragraph [ref=e862]:
+            - text: By entering your email address you agree to our
+            - link "Terms of Use" [ref=e863] [cursor=pointer]:
+              - /url: https://www.timeout.com/terms-of-use
+            - text: and
+            - link "Privacy Policy" [ref=e864] [cursor=pointer]:
+              - /url: https://www.timeout.com/privacy-notice
+            - text: and consent to receive emails from Time Out about news, events, offers and partner promotions.
+        - generic [ref=e867]:
+          - link "twitter" [ref=e868] [cursor=pointer]:
+            - /url: http://twitter.com/timeoutlisboa
+            - generic [ref=e869]: twitter
+            - img [ref=e870]
+          - link "facebook" [ref=e872] [cursor=pointer]:
+            - /url: https://www.facebook.com/TimeOutLisboa
+            - generic [ref=e873]: facebook
+            - img [ref=e874]
+          - link "instagram" [ref=e876] [cursor=pointer]:
+            - /url: https://www.instagram.com/timeoutlisboa/
+            - generic [ref=e877]: instagram
+            - img [ref=e878]
+      - generic [ref=e881]:
+        - generic [ref=e883]:
+          - generic [ref=e884]:
+            - paragraph [ref=e885]:
+              - link "About us" [ref=e886] [cursor=pointer]:
+                - /url: https://www.timeout.com/about
+            - list [ref=e887]:
+              - listitem [ref=e888]:
+                - link "Press office" [ref=e889] [cursor=pointer]:
+                  - /url: https://www.timeout.com/about/latest-news
+              - listitem [ref=e890]:
+                - link "Investor relations" [ref=e891] [cursor=pointer]:
+                  - /url: https://www.timeout.com/about/investors
+              - listitem [ref=e892]:
+                - link "Our awards" [ref=e893] [cursor=pointer]:
+                  - /url: https://www.timeout.com/about/awards
+              - listitem [ref=e894]:
+                - link "Work for Time Out" [ref=e895] [cursor=pointer]:
+                  - /url: https://www.timeout.com/about/work-for-time-out
+              - listitem [ref=e896]:
+                - link "Editorial guidelines" [ref=e897] [cursor=pointer]:
+                  - /url: https://www.timeout.com/about/editorial-guidelines
+              - listitem [ref=e898]:
+                - link "Privacy notice" [ref=e899] [cursor=pointer]:
+                  - /url: https://www.timeout.com/privacy-notice
+              - listitem [ref=e900]:
+                - link "Do not sell my information" [ref=e901] [cursor=pointer]:
+                  - /url: https://www.timeout.com/privacy-notice#CCPA
+              - listitem [ref=e902]:
+                - link "Cookie policy" [ref=e903] [cursor=pointer]:
+                  - /url: https://www.timeout.com/cookie-policy
+              - listitem [ref=e904]:
+                - link "Accessibility statement" [ref=e905] [cursor=pointer]:
+                  - /url: https://www.timeout.com/accessibility-statement
+              - listitem [ref=e906]:
+                - link "Terms of use" [ref=e907] [cursor=pointer]:
+                  - /url: https://www.timeout.com/terms-of-use
+              - listitem [ref=e908]:
+                - link "Advertising terms and conditions" [ref=e909] [cursor=pointer]:
+                  - /url: https://www.timeout.com/lisbon/advertising-terms-conditions
+              - listitem [ref=e910]:
+                - link "Modern slavery statement" [ref=e911] [cursor=pointer]:
+                  - /url: https://assets.timeout.com/application/pdf/72f4731237cff6b1e09555d8e586b3c1/modern_slavery_statement_2024_2025.pdf
+              - listitem [ref=e912]:
+                - link "Manage cookies" [ref=e913] [cursor=pointer]:
+                  - /url: ""
+          - generic [ref=e914]:
+            - paragraph [ref=e915]:
+              - link "Contact us" [ref=e916] [cursor=pointer]:
+                - /url: https://www.timeout.com/about/contact-us
+            - list [ref=e917]:
+              - listitem [ref=e918]:
+                - link "Advertising" [ref=e919] [cursor=pointer]:
+                  - /url: https://business.timeout.group/portugal/
+              - listitem [ref=e920]:
+                - link "Time Out Market" [ref=e921] [cursor=pointer]:
+                  - /url: https://www.timeout.com/time-out-market
+          - generic [ref=e922]:
+            - paragraph [ref=e923]: Time Out products
+            - list [ref=e924]:
+              - listitem [ref=e925]:
+                - link "Time Out Worldwide" [ref=e926] [cursor=pointer]:
+                  - /url: https://www.timeout.com
+              - listitem [ref=e927]:
+                - link "Guidebook" [ref=e928] [cursor=pointer]:
+                  - /url: https://www.amazon.co.uk/stores/page/CEE7EE6C-EDBD-4D7F-9FC1-D67C5A7558D4?ingress=3
+        - generic [ref=e930]:
+          - link "Site Map" [ref=e932] [cursor=pointer]:
+            - /url: /lisbon/sitemaps
+          - text: © 2026 Time Out England Limited and affiliated companies owned by Time Out Group Plc. All rights reserved. Time Out is a registered trademark of Time Out Digital Limited.
+  - iframe [ref=e933]:
+    
+  - iframe
