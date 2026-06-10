@@ -102,7 +102,7 @@ needs the gap-bridging above to draw (its block was `mapped:false`).
 
 `exportSelectedToCsv` (button below results) writes the address-input query, the current map
 center (`map_lat`/`map_lng`), and each **selected** row, using a schema identical to
-[`../search-results-review.csv`](../search-results-review.csv) so the two merge. `buildExportCsv`
+[`../data/search-results-review.csv`](../data/search-results-review.csv) so the two merge. `buildExportCsv`
 is split out so it's testable. Default page size bumped to **100**.
 
 ## Testing
