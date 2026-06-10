@@ -4,16 +4,24 @@ Static prototype for the "Notify Boston" street-sweeping alerts feature. No buil
 
 ## Files
 
-- `index.html` — single-page app shell, two tabs (search + my notifications). Loads Leaflet + PapaParse via CDN with SRI hashes.
-- `app.js` — all behavior. CSV load via PapaParse, search (local + SAM hybrid for intersections), Leaflet map with screen-anchored pin, tab switching, localStorage for saved streets.
-- `styles.css` — project-specific styles only; generic UI primitives come from Fleet.
-- `styles/fleet.css` — vendored copy of Boston's Fleet pattern library CSS (refresh with `bash styles/refresh-fleet.sh`).
+- `index.html` — single-page app shell, two tabs (search + my notifications). Loads USWDS + Leaflet + PapaParse, then `js/search-provider.js` then `js/app.js` (order matters — see below).
+- `js/` — the app's two browser scripts (plain `<script>`s, not modules; loaded by `index.html`). Their `fetch`/`Papa.parse` paths are relative to the **document** (`index.html` at root), so they stay `data/…` regardless of this directory.
+  - `js/search-provider.js` — the search **data layer**. SAM API helpers, street-name normalization/matching, the CSV/cross-street loaders + `streetData`, the cross-street proximity narrowing, and the two query entry points `resolveIntersectionSearch` / `resolveAddressSearch` (which **return** `{ baseRows, filterDefs, emptyMessage, focus }` — no DOM access). Loaded as a plain script before `app.js`; the two share one global scope.
+  - `js/app.js` — the **DOM/behavior layer**. Reads the search input and orchestrates (`performSearch` → `runIntersectionSearch` / `runAddressSearch` await the provider then render), renders the results table/map, Leaflet map with screen-anchored pin, tab switching, the sticky footer/modal, localStorage for saved streets.
+- `styles.css` — Boston brand theming layered on USWDS + the app's bespoke components (in-page tabs, inline map, results grid, sticky footer, modal, toast, demo panel). Holds the brand palette + typeface tokens in `:root`.
+- `styles/uswds/` — vendored compiled U.S. Web Design System (css/js/fonts/img), refresh with `bash styles/refresh-uswds.sh`. Loaded by `index.html`.
+- `styles/fonts.css` + `styles/fonts/` — vendored Boston brand typefaces (Montserrat + Lora) as local woff2, refresh with `bash styles/fonts/refresh-fonts.sh`. Loaded by `index.html` before USWDS. No CDN dependency.
+- `docs/brand-guidelines-boston-gov.md` — the **authoritative Boston brand guidelines** (colors w/ exact hex, typography, logo/seal, voice), rendered from boston.gov. The source of truth for all brand decisions — consult before changing colors, fonts, or the wordmark.
+- `styles/fleet.css` + `styles/refresh-fleet.sh` — legacy Boston Fleet library, no longer loaded by anything after the USWDS switch. Safe to delete.
 - `data/` — runtime data files the app `fetch`es and the `scripts/` read/write:
   - `data/street-sweeping.csv` — source data, 3756 rows of (block × side) sweeping schedules.
   - `data/sam-cross-street-points.complete-with-aliases.csv` — shipped precomputed SAM cross-street point cache used by address narrowing before live `/intersection_lookup` fallback.
   - `data/segment-geometry.json` — precomputed block→polyline geometry (`scripts/precompute-segment-geometry.mjs`) drawn on the map for search results.
+  - `data/search-results-review.csv` — hand-reviewed search-quality reference; the `EXPORT_COLUMNS` schema matches it so `exportSelectedToCsv` output can be merged in.
+  - `data/database_commas.csv` — source data dump (not `fetch`ed at runtime).
 - `scripts/` — Node ESM tooling (SAM intersection precompute + recovery pipeline, segment-geometry precompute, search-timing). Read `data/`, write `data/` or gitignored `temp/`.
-- `patterns-reference.md` — local reference for the Boston Fleet pattern library (see below).
+- `screenshots/` — gitignored scratch dir for verification screenshots (Playwright captures, etc.).
+- `patterns-reference.md` — legacy scrape of the Boston Fleet pattern library; unused after the USWDS switch.
 - `temp/plans/` — design/migration plans for in-flight work; consult before making related changes. (gitignored scratch)
 - `docs/` — the durable project docs. See the **Docs** section below.
 
@@ -45,18 +53,20 @@ Two entry points to find the right row:
 
 Two distinct inputs, different responsibilities. Don't merge them.
 
+**Data/DOM split.** The query→rows logic lives in `search-provider.js` and returns plain data; `app.js` applies that data to the page. The provider's two entry points — `resolveIntersectionSearch(raw)` and `resolveAddressSearch(raw)` — are `async` and return `{ baseRows, filterDefs, emptyMessage, focus }` with no DOM access. `app.js`'s thin orchestrators `runIntersectionSearch` / `runAddressSearch` `await` them, then set the map focus and call `applySearch`. So "where does a result come from" → provider; "how is it shown" → app.js.
+
 ### Main bar (`#street-search`) → drives the results table
 
-`performSearch(options)` dispatches three ways:
+`performSearch(options)` (in `app.js`) reads the input and dispatches three ways:
 
-- **Intersection queries** (anything containing ` and ` or ` & `) → `performIntersectionSearch`:
+- **Intersection queries** (anything containing ` and ` or ` & `) → `runIntersectionSearch` → provider's `resolveIntersectionSearch`:
   1. SAM `/intersection_lookup` canonicalizes the query (`"Comm Ave & Mass Ave"` → `"Commonwealth Ave & Massachusetts Ave"`).
   2. `filterByIntersection` finds rows where `st_name` matches one street and `from`/`to` matches the other, via `streetNamesMatch` (whole-name, not substring — so "Charles St" doesn't pull in "Charlesgate").
   3. Falls back to splitting the *raw* query locally if SAM yields no rows (catches idioms like `"Mt Vernon"` that SAM over-normalizes to `"Mount Vernon"`).
-- **Numbered address** (`"122 Commonwealth Ave"`, gated on `precise` — explicit submit or the ~400ms auto-narrow debounce) → `performAddressSearch`: geocode → `buildAddressFilterDefs` computes a **base** (all rows for the nearest road) plus **debug filters** (cross-street proximity / nearest intersection / neighborhood), each precomputing the `main_id`s it keeps. **Always both even and odd sides** (no parity filter). Falls back to local substring on empty.
-- **Plain street name** (`"7th st"`, `"Beacon"`) → local substring match against `streetData`, normalized via `normalizeStreetName` / `expandSearchQuery`. Runs on the 300ms debounce while typing (browse mode).
+- **Numbered address** (`"122 Commonwealth Ave"`, gated on `precise` — explicit submit or the ~400ms auto-narrow debounce) → `runAddressSearch` → provider's `resolveAddressSearch`: geocode → `buildAddressFilterDefs` computes a **base** (all rows for the nearest road) plus **debug filters** (cross-street proximity / nearest intersection / neighborhood), each precomputing the `main_id`s it keeps. **Always both even and odd sides** (no parity filter). Falls back to local substring on empty. (`runAddressSearch` shows the pending line and runs the staleness guard, since those touch the DOM.)
+- **Plain street name** (`"7th st"`, `"Beacon"`) → provider's `localStreetSearch` substring match against `streetData`, normalized via `normalizeStreetName` / `expandSearchQuery`. Runs on the 300ms debounce while typing (browse mode).
 
-The map pin (`onPinMoved`) reuses `buildAddressFilterDefs` when it lands on an exact address (gated by `ADDRESS_SNAP_METERS`), else falls back to broad centerline search.
+The map pin (`onPinMoved`, in `app.js`) reuses the provider's `buildAddressFilterDefs` when it lands on an exact address (gated by `ADDRESS_SNAP_METERS`), else falls back to broad centerline search.
 
 ### Base + debug filters (how results are narrowed)
 
@@ -68,7 +78,7 @@ The map pin (`onPinMoved`) reuses `buildAddressFilterDefs` when it lands on an e
 
 ### Export to CSV
 
-`exportSelectedToCsv` (button below results) writes the address-input query, the current map center (`map_lat`/`map_lng`), and each **selected** row (checked alert boxes), using the `EXPORT_COLUMNS` schema — identical to `search-results-review.csv` so the two can be merged. `buildExportCsv` is split out for testing.
+`exportSelectedToCsv` (button below results) writes the address-input query, the current map center (`map_lat`/`map_lng`), and each **selected** row (checked alert boxes), using the `EXPORT_COLUMNS` schema — identical to `data/search-results-review.csv` so the two can be merged. `buildExportCsv` is split out for testing.
 
 ### Debug bar (`#map-geocode-input`, inside Show debug panel) → pure SAM probe
 
@@ -89,7 +99,7 @@ The "SAM-first, local-fallback for intersections" hybrid captures every win with
 
 Boston's System for Address Management (SAM). Base URL: `https://api.sam.boston.gov`. Spec: `/openapi.yaml`. No auth, JSON, CORS-friendly.
 
-All access goes through three helpers near the top of `app.js`:
+All access goes through three helpers near the top of `search-provider.js`:
 
 ```js
 samGeocode(address)               → Promise<AddressMatch[]>
@@ -133,9 +143,9 @@ The debug details panel is hidden by default with a floating "Show debug" / "Hid
 Most users land here on a phone. Workflow:
 
 1. Test new UI at **390×844** (iPhone 13/14) first. If using Playwright, `browser_resize` to those dimensions before any snapshot.
-2. Before declaring a layout change done, resize to **~1280×800** and confirm the layout still respects `.main-content { max-width: 600px }` and nothing is stretched across the screen.
+2. Before declaring a layout change done, resize to **~1280×800** and confirm the layout still respects the reading-column cap (`.main-content .grid-container { max-width: 40rem }`, ~640px) and nothing is stretched across the screen.
 
-The map specifically: **don't give it its own width** — let it inherit the 600px cap from `.main-content`. We learned this when the map stretched across the desktop screen at `width: 95vw`.
+The map specifically: **don't give it its own width** — let it inherit the column cap from `.main-content .grid-container`. We learned this when the map stretched across the desktop screen at `width: 95vw`.
 
 ### VS Code Live Preview gotcha
 
@@ -159,34 +169,36 @@ The `#notify-footer` is hidden until the user has selected at least one row (`pe
 
 This session deleted ~90 lines of dead code (`saveStreet`, `removeStreet`, `renderStreetCard`) left over from a previous UI pivot — they were never called by anything. If you find yourself adding a function with no caller, ask whether it's needed yet.
 
-## Styling: Boston Fleet pattern library
+## Styling: U.S. Web Design System (USWDS)
 
-This prototype is destined to ship inside boston.gov, so generic UI (buttons, inputs, headers, tables, cards, layout, pagination, tabs, footers) **should use Fleet classes**, not custom CSS. Fleet CSS is vendored at `styles/fleet.css` and loaded by `index.html`. Only write custom CSS for behavior Fleet genuinely doesn't cover (modals, toasts, in-app notification footer, demo panel — see `temp/plans/fleet-migration.md` for the full inventory).
+The app uses USWDS for generic UI — buttons, inputs, selects, checkboxes, alerts, the gov banner, the header, and the grid. Compiled USWDS is vendored at `styles/uswds/` and loaded by `index.html`; `styles/uswds/js/uswds.min.js` runs the interactive components (banner accordion, etc.). `styles.css` loads *after* USWDS and does two jobs: (1) re-themes USWDS's default blue to Boston brand colors, (2) styles the bespoke components USWDS doesn't cover (in-page tab toggle, inline Leaflet map, the results CSS-grid, the sticky notification footer, the sign-up modal frame, toast, demo panel).
 
-**Before writing custom CSS or markup for any generic UI element, grep `patterns-reference.md`** for the relevant component name or class. The file has 252 components, each with its rendered HTML and a link to the live docs page. Examples:
+**Before writing custom CSS for a generic UI element, use the USWDS component instead** — add the `usa-*` classes/markup. The component reference is the official docs at <https://designsystem.digital.gov/components/>; the vendored `styles/uswds/css/uswds.min.css` is the source of truth for what's available. Common ones already in use: `usa-button` (+`--outline`, `--unstyled`), `usa-input`, `usa-select`, `usa-checkbox`, `usa-label`, `usa-alert`, `usa-tag`, `usa-banner`, `usa-header`, `usa-button-group--segmented`.
 
-- Need a button? `grep -A 10 "^## button--" patterns-reference.md`
-- Need a form input? `grep -A 10 "^## txi\|^## sf" patterns-reference.md`
-- Looking for a class like `.sh-title`? `grep -B 2 "sh-title" patterns-reference.md`
+(The old Boston Fleet library and its `patterns-reference.md` scrape are no longer used; ignore them when styling.)
 
-To refresh the reference, re-run the scrape script in the conversation history that created it.
+### Boston brand fidelity (USWDS, adapted to Boston)
+
+The model is **USWDS for structure, Boston brand for skin.** USWDS gives accessible, government-grade components; [`docs/brand-guidelines-boston-gov.md`](docs/brand-guidelines-boston-gov.md) dictates how they look. When the two conflict, the brand guidelines win on color/type/logo and USWDS wins on structure/behavior/markup. **Any change to colors, fonts, or the wordmark must trace back to a value in `docs/brand-guidelines-boston-gov.md`** — don't invent brand colors or pull hexes from memory.
+
+- **Color.** The brand palette lives once in `styles.css` `:root` as `--charles-blue` (#091F2F), `--optimistic-blue` (#1871BD — the guide's exact spec, *not* a brighter web blue), `--freedom-trail-red` (#FB4D42, use **sparingly** per the guide), and supporting grays (#58585B / #D2D2D2 / #E0E0E0 / #F2F2F2). Re-theme USWDS by overriding its touchpoints with these vars; never add a one-off hex.
+- **Typography.** Montserrat for headers/nav/buttons (**always UPPERCASE bold**) and Lora for body — the guide's two typefaces, replacing USWDS's Source Sans/Merriweather. Applied via `--font-heading` / `--font-body` tokens mapped onto element + `usa-*` selectors in the Typography section of `styles.css`. Fonts are vendored locally (see below), not CDN-loaded.
+- **Wordmark.** The header uses the brand's signature **bold "B" underlined in Freedom Trail Red** ("when something matters, we underline it") via `.header-bmark` — not a plain text logo. Preserve it on any new header markup.
 
 ## Sage advice for future coding agents
 
-The prior agent shipped ~400 lines of `styles.css` that reimplemented Fleet primitives from scratch (see `temp/plans/fleet-migration.md` for the autopsy). Avoid repeating these mistakes:
+1. **Theme USWDS; don't reimplement it.** Brand colors are applied by overriding USWDS touchpoints in `styles.css` (`.usa-button`, `.usa-button--outline`, `.usa-link`, `.usa-header`, `.usa-tag`). USWDS compiles colors to static hex (no `:root` theme vars in the compiled CSS), so re-theming is done with plain overrides — `styles.css` loads after USWDS, so equal-specificity overrides win. The `--charles-blue` / `--optimistic-blue` / etc. variables in `styles.css` are the single source for those overrides.
 
-1. **If you're styling a button, search input, table, pagination, tab strip, header, footer, or card — STOP and grep `patterns-reference.md` first.** Fleet almost certainly has it. The prior agent wrote five near-identical "teal-on-white uppercase Montserrat" buttons (`.search-btn`, `.notify-save-btn`, `.modal-submit-btn`, `.notification-prefs-save-btn`, `.save-btn`) when one `.btn` class would have covered all of them. If you find yourself writing the *second* variant of a UI primitive, you've gone wrong.
+2. **`styles.css` loads after `uswds.min.css`.** A bare `.usa-button { … }` rule in `styles.css` overrides USWDS. So to *use* the USWDS look, don't restyle the component's class — only override the specific properties you want to re-theme (e.g. `background-color`), and leave the rest to USWDS.
 
-2. **Fleet's class names are terse on purpose.** `.btn`, `.sf`, `.pg`, `.sh-title`, `.cd`, `.t--upper`, `.responsive-table` — these look cryptic but they're the canonical Boston namespace. Don't wrap them in semantic-feeling custom classes ("but `.search-btn` is clearer than `.btn`!") — that defeats Fleet upgrades, accessibility work, and visual consistency with boston.gov.
+3. **The signup modal is intentionally NOT a `usa-modal`.** It's a custom overlay toggled by app.js via `style.display`. USWDS's modal JS expects to own show/hide (and errors on a `.usa-modal` with no id), so the modal uses USWDS *form controls* (`usa-checkbox`, `usa-input`, `usa-button`) inside a custom frame rather than the `usa-modal` component.
 
-3. **Search Fleet by the *component* name, not the HTML tag.** Boston's pattern library is named idiosyncratically: pagination is `pagination`, but search form is `form_search`, section headers are `section_header`, responsive tables are `table--default` / `responsive-table`. Grep broadly (`grep "^## " patterns-reference.md | grep -i <keyword>`) before concluding "Fleet doesn't have this."
+4. **Preserve app.js's DOM hooks when editing markup.** app.js reads `element.style.display` on several elements (e.g. `toggleMap`, the map-details toggle), so keep their initial inline `style="display: none"` rather than switching to the `hidden` attribute. It also keys off ids and the `.tab-btn`/`.tab-content`/`.active`/`.alert-checkbox`/`.pagination-btn[data-page]` classes — grep before renaming.
 
-4. **Don't reinvent responsive behavior.** The prior agent wrote ~57 lines of `@media (max-width: 600px)` rules to collapse a CSS-grid "table" on mobile by hiding columns and appending data via `::after`. Fleet's `responsive-table` does this declaratively with `data-label` attributes. If you're writing a media query to hide table columns, you're probably reinventing this.
+5. **The in-page tabs are driven solely by the `.active` class.** `switchTab` only toggles `.active` (it never adds/removes `usa-button--outline`), so the tab buttons' selected/unselected appearance is defined entirely in `styles.css` off `.tab-btn` / `.tab-btn.active` — don't hard-code a USWDS button-state modifier on them.
 
-5. **Check what Fleet actually exposes before shadowing it.** Fleet's `public.css` has NO `:root { --vars }` block — brand colors are baked into selectors as hex literals. The CSS variables in `styles.css` (`--charles-blue`, `--optimistic-blue`, etc.) are therefore load-bearing for app-specific selectors. Don't blindly delete them assuming Fleet "must" expose them.
+6. **The results "table" is a bespoke CSS grid, not `usa-table`.** Its `grid-template-columns`, mobile column-collapsing (`@media (max-width: 600px)`), and per-row checkbox/`data-id` hooks live in `styles.css` + app.js. Converting it to `usa-table` is a deliberate future task, not a drive-by.
 
-6. **For markup that already exists, don't just slap Fleet classes onto custom HTML — adopt Fleet's markup structure too.** Fleet components often have specific nesting (e.g. `.sf > .sf-i > .sf-i-f + .sf-i-b`) and partial classes won't render correctly. Copy the example HTML from `patterns-reference.md` verbatim, then customize the content.
+7. **To update USWDS, run `bash styles/refresh-uswds.sh`** (re-packs `@uswds/uswds` and re-extracts the compiled dist). Never hand-edit files under `styles/uswds/`. The compiled CSS references `../fonts/` and `../img/`, so the `css/`, `fonts/`, and `img/` directories must stay siblings.
 
-7. **Big-ticket items (header, tabs) are worth doing right the first time.** Because this prototype will ship inside boston.gov, the site header and tab navigation eventually need to match Fleet exactly (`header--default`, `tabs--default`). The prior agent built slim custom versions of both — now those have to be replaced. If you're adding a top-level navigation element from scratch, use the Fleet version even if it's more markup than you'd otherwise write.
-
-8. **Don't pre-emptively delete the vendored `styles/fleet.css`** — that's our pinned, vetted copy. To update it, run `bash styles/refresh-fleet.sh` (which downloads from `patterns.boston.gov` and rewrites asset paths to absolute URLs). Never edit `styles/fleet.css` by hand.
+8. **Brand fonts are vendored, not CDN-loaded.** `styles/fonts.css` + the woff2 in `styles/fonts/` are generated by `bash styles/fonts/refresh-fonts.sh` (fetches Google Fonts' subsetted CSS — needs a full desktop-Safari User-Agent to get the `/* latin */`-commented format — and downloads only the `latin`/`latin-ext` woff2). Lora/Montserrat are variable fonts, so multiple weight/style `@font-face` blocks share one file; the script dedupes by URL. To change weights or add a subset, edit the script and re-run — never hand-edit `styles/fonts.css`. Don't reintroduce a `fonts.googleapis.com` `<link>`.

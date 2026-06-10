@@ -1,4 +1,5 @@
 temp/
 .env
-.playwright-mcp/
+.playwright-*
 .claude/
+screenshots/

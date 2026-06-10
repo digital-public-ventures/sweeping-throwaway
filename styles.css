@@ -1,243 +1,302 @@
-/* Notify Boston - Custom Styles */
-/* Built to complement the Fleet pattern library */
+/* Notify Boston — custom styles layered on the U.S. Web Design System (USWDS).
+ *
+ * USWDS (styles/uswds/css/uswds.min.css) provides the base: typography (Source
+ * Sans / Merriweather), form controls, buttons, alerts, checkboxes, selects,
+ * the gov banner, and the grid. This file loads AFTER it and does two things:
+ *   1. Re-themes USWDS's default blue to Boston's brand colors.
+ *   2. Styles the app's bespoke components (in-page tabs, the inline map, the
+ *      results grid, the sticky notification footer, the demo panel, etc.)
+ *      that have no direct USWDS equivalent.
+ */
 
-/* CSS Variables for Boston brand colors */
+/* ============================================================ */
+/* Boston brand palette                                         */
+/* ============================================================ */
 :root {
-  --charles-blue: #091f2f;
-  --optimistic-blue: #288be4;
+  /* Primary colors (Boston brand guidelines) */
+  --charles-blue: #091f2f; /* hex from guide */
+  --optimistic-blue: #1871bd; /* guide spec; was #288be4 */
+  --optimistic-blue-dark: #0f5a99; /* darker shade for hover/active */
   --freedom-trail-red: #fb4d42;
-  --yellow: #fcb61a;
+
+  /* Supporting grays (guide: #58585B, #D2D2D2, #E0E0E0, #F2F2F2) */
   --gray-light: #f2f2f2;
+  --gray-medium-light: #e0e0e0;
   --gray-medium: #d2d2d2;
   --gray-dark: #58585b;
   --white: #ffffff;
-  --teal-accent: #288be4;
 
-  /* Status colors */
   --status-safe: #1a8a1a;
   --status-warning: #e67e00;
   --status-danger: #d32f2f;
+
+  /* Brand typefaces */
+  --font-heading: "Montserrat", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-body: "Lora", Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
-/* Reset and base */
-* {
-  box-sizing: border-box;
+/* ============================================================ */
+/* Typography — Boston typefaces over USWDS defaults            */
+/* ============================================================ */
+/* USWDS ships Source Sans (sans) + Merriweather (serif). The Boston guide
+   calls for Lora as body text and Montserrat for headers/nav/buttons, always
+   set UPPERCASE bold. We load both from Google Fonts (see index.html) and map
+   them onto the relevant surfaces here. */
+
+/* Body copy → Lora. */
+body,
+.usa-prose,
+.usa-input,
+.usa-select,
+.usa-textarea,
+p {
+  font-family: var(--font-body);
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: "Lora", Georgia, serif;
-  background-color: var(--gray-light);
-  color: var(--charles-blue);
-  min-height: 100vh;
+/* Headers, nav, buttons, labels, tags → Montserrat, bold + uppercase. */
+h1, h2, h3, h4, h5, h6,
+.usa-logo__text,
+.usa-button,
+.usa-label,
+.usa-tag {
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+h1, h2, h3, h4, h5, h6 {
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
-/* Header */
-.header {
+/* ============================================================ */
+/* Re-theme USWDS to Boston brand colors                        */
+/* ============================================================ */
+
+/* Primary buttons → Boston Optimistic Blue. */
+.usa-button {
+  background-color: var(--optimistic-blue);
+}
+.usa-button:hover,
+.usa-button:focus {
+  background-color: var(--optimistic-blue-dark);
+}
+.usa-button:active {
   background-color: var(--charles-blue);
-  color: var(--white);
-  padding: 1rem 1rem 0.75rem;
-  text-align: center;
 }
 
-.tab-context-banner {
-  background-color: var(--teal-accent);
-  color: var(--white);
-  padding: 0.75rem 1rem;
-  font-family: "Lora", Georgia, serif;
-  font-size: 0.9375rem;
-  text-align: center;
-  margin: -1rem -1rem 1rem -1rem;
-  border-radius: 4px 4px 0 0;
+/* Outline buttons (USWDS draws the border with an inset box-shadow). */
+.usa-button--outline {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 2px var(--optimistic-blue);
+  color: var(--optimistic-blue);
+}
+.usa-button--outline:hover,
+.usa-button--outline:focus {
+  box-shadow: inset 0 0 0 2px var(--optimistic-blue-dark);
+  color: var(--optimistic-blue-dark);
 }
 
-.header-title {
-  font-family: "Montserrat", sans-serif;
-  font-size: 1.5rem;
+/* Links. */
+.usa-link {
+  color: var(--optimistic-blue);
+}
+.usa-link:hover {
+  color: var(--optimistic-blue-dark);
+}
+
+/* Site header band in Charles Blue with a white wordmark. */
+.usa-header {
+  background-color: var(--charles-blue);
+}
+.usa-header .usa-logo__text {
+  color: var(--white);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-style: normal; /* override <em> italic */
 }
 
-.header-subtitle {
-  font-family: "Lora", Georgia, serif;
+/* The brand mark: a bold "B", underlined in Freedom Trail Red.
+   "When something matters, we underline it." — Boston brand guidelines. */
+.header-bmark {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 1;
+  padding-bottom: 2px;
+  border-bottom: 3px solid var(--freedom-trail-red);
+}
+
+.header-wordmark {
   font-size: 1rem;
-  font-style: italic;
-  margin: 0.25rem 0 0 0;
-  opacity: 0.9;
 }
 
-/* Tab Navigation */
+/* The "My Notifications" alert pip, rendered as a usa-tag. */
+.alert-badge {
+  background-color: var(--freedom-trail-red);
+  color: var(--white);
+  border-radius: 999px;
+  margin-left: 0.25rem;
+}
+
+/* ============================================================ */
+/* App shell                                                    */
+/* ============================================================ */
+
+/* USWDS adds body padding/margins for prose pages; this app manages its own
+   full-bleed header/footer, so reset and let .grid-container set the column. */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--gray-light);
+  min-height: 100vh;
+}
+
+.main-content {
+  padding: 1rem 0 2rem;
+}
+
+/* Keep the original narrow, mobile-first reading column rather than USWDS's
+   wide 64rem default. */
+.main-content .grid-container {
+  max-width: 40rem;
+}
+
+.main-content.has-footer {
+  padding-bottom: 120px;
+}
+
+/* ============================================================ */
+/* In-page tabs (segmented button group, toggled by app.js)     */
+/* ============================================================ */
 .tab-nav {
-  display: flex;
-  background-color: var(--white);
-  border-bottom: 3px solid var(--charles-blue);
   position: sticky;
   top: 0;
   z-index: 100;
+  background-color: var(--white);
+  border-bottom: 3px solid var(--charles-blue);
 }
 
-.tab-btn {
+.tab-nav .usa-button-group {
+  margin: 0;
+  display: flex;
+}
+
+.tab-nav .usa-button-group__item {
   flex: 1;
-  padding: 1rem;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* app.js only toggles `.active`, so override the USWDS button look entirely and
+   drive selected vs. unselected purely off that class. */
+.tab-nav .tab-btn.usa-button {
+  width: 100%;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background-color: var(--white);
+  color: var(--gray-dark);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: var(--white);
-  border: none;
-  cursor: pointer;
-  position: relative;
-  color: var(--gray-dark);
-  transition: all 0.2s ease;
 }
 
-.tab-btn:hover {
+.tab-nav .tab-btn.usa-button:hover {
   background-color: var(--gray-light);
-}
-
-.tab-btn.active {
   color: var(--charles-blue);
-  background-color: var(--gray-light);
 }
 
-.tab-btn.active::after {
-  content: '';
+.tab-nav .tab-btn.usa-button.active {
+  position: relative;
+  background-color: var(--gray-light);
+  color: var(--charles-blue);
+}
+
+.tab-nav .tab-btn.usa-button.active::after {
+  content: "";
   position: absolute;
-  bottom: -3px;
   left: 0;
   right: 0;
+  bottom: -3px;
   height: 3px;
   background-color: var(--freedom-trail-red);
 }
 
-/* Alert badge on My Streets tab */
-.alert-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--freedom-trail-red);
-  color: var(--white);
-  font-size: 0.625rem;
-  font-weight: 700;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  margin-left: 0.5rem;
-  vertical-align: middle;
-}
-
-/* Main Content */
-.main-content {
-  padding: 1rem;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.main-content.has-footer {
-  padding-bottom: 100px;
-}
-
-/* Tab Content */
+/* ============================================================ */
+/* Tab content                                                  */
+/* ============================================================ */
 .tab-content {
   display: none;
 }
-
 .tab-content.active {
   display: block;
 }
 
-/* Search Container */
+/* ============================================================ */
+/* Search form                                                  */
+/* ============================================================ */
 .search-container {
   background-color: var(--white);
   padding: 1.5rem;
   border-radius: 4px;
   margin-bottom: 1rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* Override USWDS .usa-form's narrow max-width — fill the column. */
+  max-width: none;
+  width: 100%;
 }
 
 .search-label {
-  display: block;
-  color: var(--charles-blue);
-  font-family: "Montserrat", sans-serif;
   font-size: 1.125rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: var(--charles-blue);
 }
 
 .search-hint {
-  display: block;
-  color: var(--gray-dark);
-  font-size: 0.875rem;
   margin-bottom: 1rem;
-  line-height: 1.5;
-}
-
-.search-hint a {
-  color: var(--teal-accent);
-  text-decoration: underline;
-}
-
-.search-hint a:hover {
-  color: #1f7acc;
 }
 
 .search-input-wrapper {
   display: flex;
   gap: 0.5rem;
+  align-items: flex-start;
 }
 
-.search-input {
+/* Let the input grow to fill the row instead of USWDS's capped width. */
+.search-input-wrapper .search-input.usa-input {
   flex: 1;
-  padding: 0.875rem 1rem;
-  font-size: 1rem;
-  font-family: "Lora", Georgia, serif;
-  border: 2px solid var(--gray-medium);
-  border-radius: 2px;
-  outline: none;
+  max-width: none;
+  margin-top: 0;
 }
 
-.search-input:focus {
-  border-color: var(--teal-accent);
-  box-shadow: 0 0 0 2px rgba(40, 139, 228, 0.2);
-}
-
-.search-btn {
-  padding: 0.875rem 1.5rem;
-  background-color: var(--teal-accent);
-  color: var(--white);
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.search-btn:hover {
-  background-color: #1f7acc;
-}
-
-.search-btn--full {
-  flex: 1;
+.search-input-wrapper .search-btn {
+  margin-top: 0;
+  flex-shrink: 0;
 }
 
 .search-or {
   text-align: center;
-  color: #888;
+  color: var(--gray-dark);
   font-size: 0.875rem;
   letter-spacing: 0.1em;
   margin: 0.75rem 0;
 }
 
+.search-btn--full {
+  width: 100%;
+  margin-top: 0;
+}
+
+.search-error {
+  margin-top: 0.75rem;
+}
+
+/* ============================================================ */
+/* Inline map (Leaflet)                                         */
+/* ============================================================ */
 .map-container {
-  /* No own width cap — inherit the 600px max-width from .main-content so the
-     map aligns with the search form and results table on every viewport. */
   margin: 1rem 0;
 }
 
@@ -250,41 +309,35 @@ body {
 
 .map-status {
   margin: 0.5rem 0 0;
-  font-size: 0.875rem;
-  color: #555;
 }
 
-/* Pin overlay anchored to the visible center of the map. The SVG's bottom
-   tip is the actual location, so we offset translate by -100% on Y. */
+/* Pin overlay anchored to the visible center of the map. The SVG's bottom tip
+   is the actual location, so offset translate by -100% on Y. */
 .center-pin {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -100%);
-  pointer-events: none; /* let drag events reach the map below */
-  z-index: 700;         /* above tiles + markers, below Leaflet controls */
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+  pointer-events: none;
+  z-index: 700;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 }
 
-/* Floating "Hide details" / "Show details" button anchored to the map's
-   top-right corner. Leaflet sets position:relative on #map so absolute
-   positioning here is relative to the map div itself. */
+/* Floating "Show debug" / "Hide debug" button on the map's top-right. */
 .map-details-toggle {
   position: absolute;
   top: 10px;
   right: 10px;
   z-index: 1000;
   padding: 6px 10px;
-  font: 0.75rem -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #fff;
+  font-size: 0.75rem;
+  background: var(--white);
   border: 1px solid #999;
   border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   cursor: pointer;
 }
 
-/* SAM /xy_lookup details panel that sits below the map. Toggleable via the
-   floating button above. */
 .map-details {
   margin: 0.5rem 0 0;
   padding: 8px 12px;
@@ -298,20 +351,18 @@ body {
   display: flex;
   gap: 6px;
   margin-bottom: 0.5rem;
+  max-width: none;
 }
 
-.map-geocode-form input {
+.map-geocode-form .usa-input {
   flex: 1;
-  padding: 4px 8px;
-  font-size: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 3px;
+  margin-top: 0;
+  max-width: none;
 }
 
-.map-geocode-form button {
-  padding: 4px 10px;
-  font-size: 0.75rem;
-  cursor: pointer;
+.map-geocode-form .usa-button {
+  margin-top: 0;
+  flex-shrink: 0;
 }
 
 .map-details-dump {
@@ -322,1048 +373,9 @@ body {
   overflow-x: auto;
 }
 
-/* Search Error Message */
-.search-error {
-  color: var(--status-danger);
-  font-size: 0.875rem;
-  margin-top: 0.75rem;
-  line-height: 1.4;
-}
-
-/* Results Container */
-.results-container {
-  min-height: 200px;
-}
-
-.results-placeholder {
-  text-align: center;
-  color: var(--gray-dark);
-  padding: 2rem;
-  font-style: italic;
-}
-
-.results-count {
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.875rem;
-  color: var(--gray-dark);
-  margin-bottom: 1rem;
-  text-transform: uppercase;
-}
-
-/* Street Results Table */
-.results-table {
-  background-color: var(--white);
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.results-table-header {
-  display: grid;
-  grid-template-columns: 1fr 80px 1fr 70px;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background-color: var(--charles-blue);
-  color: var(--white);
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.results-table-header span {
-  text-align: center;
-}
-
-.results-table-header span:first-child {
-  text-align: left;
-}
-
-.street-row {
-  display: grid;
-  grid-template-columns: 1fr 80px 1fr 70px;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--gray-light);
-  align-items: center;
-  transition: background-color 0.15s ease;
-}
-
-.street-row:hover {
-  background-color: var(--gray-light);
-}
-
-.street-row:last-child {
-  border-bottom: none;
-}
-
-.street-row-checkbox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.street-row-checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--teal-accent);
-}
-
-.street-row-alert-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.street-row-alert-cell input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--teal-accent);
-}
-
-.street-row-alert-cell.checkbox-locked input[type="checkbox"] {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.street-row-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-.street-row-name {
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--charles-blue);
-}
-
-.street-row-segment {
-  font-size: 0.8125rem;
-  color: var(--gray-dark);
-}
-
-.street-row-side {
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.8125rem;
-  text-align: center;
-  color: var(--gray-dark);
-}
-
-.street-row-schedule {
-  font-size: 0.8125rem;
-  color: var(--gray-dark);
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.schedule-text {
-  color: var(--gray-dark);
-}
-
-.next-date {
-  color: var(--teal-accent);
-  font-weight: 500;
-  font-size: 0.75rem;
-}
-
-.next-date-status {
-  display: block;
-  color: var(--gray-dark);
-  font-size: 0.6875rem;
-  font-weight: 400;
-  margin-top: 0.25rem;
-}
-
-.street-row-notify {
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.75rem;
-  color: var(--gray-dark);
-  text-align: center;
-}
-
-.street-row-status {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-}
-
-.status-badge {
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  padding: 0.25rem 0.5rem;
-  border-radius: 2px;
-  white-space: nowrap;
-}
-
-.status-badge.safe {
-  background-color: #e8f5e9;
-  color: var(--status-safe);
-}
-
-.status-badge.warning {
-  background-color: #fff3e0;
-  color: var(--status-warning);
-}
-
-.status-badge.danger {
-  background-color: #ffebee;
-  color: var(--status-danger);
-}
-
-.saved-row.status-danger {
-  background-color: #fff8f8;
-}
-
-.saved-row.status-warning {
-  background-color: #fffdf8;
-}
-
-.saved-row.pending-removal {
-  opacity: 0.4;
-  text-decoration: line-through;
-}
-
-/* Saved table has different columns (no Side column) */
-.saved-table .results-table-header.saved-header {
-  grid-template-columns: 1fr 1fr 100px 70px;
-}
-
-.saved-table .street-row {
-  grid-template-columns: 1fr 1fr 100px 70px;
-}
-
-/* Sticky Notification Footer */
-.notify-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--white);
-  border-top: 1px solid var(--gray-medium);
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  padding: 0.75rem 1rem;
-}
-
-.notify-footer-content {
-  max-width: 600px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.notify-footer-count {
-  flex: 1;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--charles-blue);
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-height: 1.5rem;
-}
-
-.notify-hint {
-  font-weight: 400;
-  font-size: 0.75rem;
-  color: var(--gray-dark);
-}
-
-.notify-clear-btn {
-  background: none;
-  border: none;
-  color: var(--freedom-trail-red);
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.notify-clear-btn:hover {
-  color: #d43d33;
-}
-
-.notify-footer-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.notify-save-btn {
-  padding: 0.625rem 1.25rem;
-  background-color: var(--teal-accent);
-  color: var(--white);
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.notify-save-btn:hover {
-  background-color: #1f7acc;
-}
-
-/* Sign-up Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-
-.modal-content {
-  background-color: var(--white);
-  border-radius: 8px;
-  padding: 2rem;
-  max-width: 400px;
-  width: 90%;
-  position: relative;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-}
-
-.modal-close {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--gray-dark);
-  line-height: 1;
-}
-
-.modal-title {
-  font-family: "Montserrat", sans-serif;
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--charles-blue);
-  margin: 0 0 1.5rem 0;
-}
-
-.modal-subtitle {
-  font-size: 0.875rem;
-  color: var(--gray-dark);
-  margin: 0 0 1rem 0;
-}
-
-.modal-options {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.modal-option-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background-color: var(--gray-light);
-  border: 2px solid var(--gray-medium);
-  border-radius: 4px;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--charles-blue);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.modal-option-checkbox:hover {
-  background-color: #e3f2fd;
-  border-color: var(--teal-accent);
-}
-
-.modal-option-checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--teal-accent);
-  cursor: pointer;
-}
-
-.modal-option-checkbox input[type="checkbox"]:checked + span {
-  color: var(--teal-accent);
-}
-
-.modal-input-area {
-  margin-top: 1rem;
-}
-
-.modal-input-label {
-  display: block;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--charles-blue);
-  margin-bottom: 0.5rem;
-}
-
-.modal-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  font-family: "Lora", Georgia, serif;
-  border: 2px solid var(--gray-medium);
-  border-radius: 4px;
-  outline: none;
-  margin-bottom: 1rem;
-}
-
-.modal-input:focus {
-  border-color: var(--teal-accent);
-}
-
-.modal-submit-btn {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  background-color: var(--teal-accent);
-  color: var(--white);
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.modal-submit-btn:hover {
-  background-color: #1f7acc;
-}
-
-.modal-push-msg {
-  margin-top: 1rem;
-}
-
-.modal-push-msg p {
-  font-size: 0.875rem;
-  color: var(--gray-dark);
-  margin: 0 0 1rem 0;
-  line-height: 1.5;
-}
-
-/* Toast Notification */
-.toast {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: var(--charles-blue);
-  color: var(--white);
-  padding: 0.875rem 1.5rem;
-  border-radius: 4px;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.875rem;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  z-index: 3000;
-  animation: toast-fade 4s ease-in-out;
-  max-width: 90%;
-  text-align: center;
-}
-
-@keyframes toast-fade {
-  0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
-  10% { opacity: 1; transform: translateX(-50%) translateY(0); }
-  90% { opacity: 1; transform: translateX(-50%) translateY(0); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-}
-
-/* Pagination */
-.pagination-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 0;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.pagination-info {
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.8125rem;
-  color: var(--gray-dark);
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.pagination-btn {
-  padding: 0.5rem 0.75rem;
-  background-color: var(--white);
-  border: 1px solid var(--gray-medium);
-  border-radius: 4px;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.8125rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pagination-btn:hover:not(:disabled) {
-  background-color: var(--gray-light);
-  border-color: var(--gray-dark);
-}
-
-.pagination-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.pagination-btn.active {
-  background-color: var(--teal-accent);
-  border-color: var(--teal-accent);
-  color: var(--white);
-}
-
-.page-size-selector {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.8125rem;
-  color: var(--gray-dark);
-}
-
-.page-size-selector select {
-  padding: 0.375rem 0.5rem;
-  border: 1px solid var(--gray-medium);
-  border-radius: 4px;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.8125rem;
-  cursor: pointer;
-}
-
-/* Notification Preferences Panel */
-.notification-prefs-panel {
-  background-color: var(--white);
-  border-radius: 4px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.notification-prefs-title {
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--charles-blue);
-  margin: 0 0 0.75rem 0;
-  text-transform: uppercase;
-}
-
-.notification-prefs-methods {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.notification-pref-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background-color: var(--gray-light);
-  border-radius: 4px;
-}
-
-.notification-pref-item.active {
-  background-color: #e3f2fd;
-  border: 1px solid var(--teal-accent);
-}
-
-.notification-pref-item input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--teal-accent);
-}
-
-.notification-pref-item label {
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--charles-blue);
-  cursor: pointer;
-}
-
-.notification-prefs-save {
-  margin-top: 0.75rem;
-}
-
-.notification-prefs-save-btn {
-  padding: 0.5rem 1rem;
-  background-color: var(--teal-accent);
-  color: var(--white);
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.notification-prefs-save-btn:hover {
-  background-color: #1f7acc;
-}
-
-
-/* Legacy Street Card (for dashboard) */
-.street-card {
-  background-color: var(--white);
-  border-radius: 4px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid var(--optimistic-blue);
-}
-
-.street-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.75rem;
-}
-
-.street-name {
-  font-family: "Montserrat", sans-serif;
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--charles-blue);
-  margin: 0;
-}
-
-.street-neighborhood {
-  font-size: 0.875rem;
-  color: var(--gray-dark);
-  margin: 0.25rem 0 0 0;
-}
-
-.street-segment {
-  font-size: 0.875rem;
-  color: var(--gray-dark);
-  margin: 0.25rem 0;
-}
-
-.street-side {
-  display: inline-block;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  background-color: var(--gray-light);
-  color: var(--gray-dark);
-  padding: 0.25rem 0.5rem;
-  border-radius: 2px;
-  margin-top: 0.25rem;
-}
-
-.street-schedule {
-  font-size: 0.9375rem;
-  margin: 0.75rem 0;
-  padding: 0.75rem;
-  background-color: var(--gray-light);
-  border-radius: 2px;
-}
-
-.schedule-label {
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--gray-dark);
-  display: block;
-  margin-bottom: 0.25rem;
-}
-
-.alert-prefs {
-  display: inline-block;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--teal-accent);
-  margin-top: 0.5rem;
-  margin-left: 0.5rem;
-}
-
-/* Card Actions */
-.card-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.save-btn,
-.remove-btn {
-  padding: 0.625rem 1rem;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.save-btn {
-  background-color: var(--optimistic-blue);
-  color: var(--white);
-}
-
-.save-btn:hover {
-  background-color: #1565a0;
-}
-
-.save-btn.saved {
-  background-color: var(--gray-medium);
-  color: var(--gray-dark);
-  cursor: default;
-}
-
-.remove-btn {
-  background-color: var(--white);
-  color: var(--freedom-trail-red);
-  border: 2px solid var(--freedom-trail-red);
-}
-
-.remove-btn:hover {
-  background-color: var(--freedom-trail-red);
-  color: var(--white);
-}
-
-/* Status Indicator */
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border-radius: 4px;
-  margin-bottom: 0.75rem;
-}
-
-.status-indicator.safe {
-  background-color: #e8f5e9;
-  border-left: 4px solid var(--status-safe);
-}
-
-.status-indicator.warning {
-  background-color: #fff3e0;
-  border-left: 4px solid var(--status-warning);
-}
-
-.status-indicator.danger {
-  background-color: #ffebee;
-  border-left: 4px solid var(--status-danger);
-}
-
-.status-icon {
-  font-size: 1.5rem;
-  line-height: 1;
-}
-
-.status-text {
-  flex: 1;
-}
-
-.status-label {
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  margin: 0;
-}
-
-.status-indicator.safe .status-label {
-  color: var(--status-safe);
-}
-
-.status-indicator.warning .status-label {
-  color: var(--status-warning);
-}
-
-.status-indicator.danger .status-label {
-  color: var(--status-danger);
-}
-
-.status-detail {
-  font-size: 0.875rem;
-  color: var(--gray-dark);
-  margin: 0.25rem 0 0 0;
-}
-
-/* Dashboard card variant */
-.street-card.dashboard-card {
-  border-left-width: 0;
-  border-top: 4px solid var(--optimistic-blue);
-}
-
-.street-card.dashboard-card.status-safe-card {
-  border-top-color: var(--status-safe);
-}
-
-.street-card.dashboard-card.status-warning-card {
-  border-top-color: var(--status-warning);
-}
-
-.street-card.dashboard-card.status-danger-card {
-  border-top-color: var(--status-danger);
-}
-
-/* Empty State */
-.empty-state {
-  text-align: center;
-  color: var(--gray-dark);
-  padding: 3rem 1rem;
-  font-style: italic;
-}
-
-.saved-streets-container {
-  min-height: 200px;
-}
-
-/* Demo Panel */
-.demo-panel {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--charles-blue);
-  color: var(--white);
-  padding: 1rem;
-  z-index: 1000;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.demo-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  font-family: "Montserrat", sans-serif;
-  text-transform: uppercase;
-}
-
-.demo-close {
-  background: none;
-  border: none;
-  color: var(--white);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.25rem;
-}
-
-.demo-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.demo-controls label {
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-}
-
-.demo-controls input {
-  padding: 0.5rem;
-  border: none;
-  border-radius: 2px;
-  font-family: "Lora", Georgia, serif;
-}
-
-.demo-controls button {
-  padding: 0.5rem 1rem;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
-}
-
-.demo-controls .btn--y {
-  background-color: var(--yellow);
-  color: var(--charles-blue);
-}
-
-.demo-controls #reset-demo {
-  background-color: var(--gray-medium);
-  color: var(--charles-blue);
-}
-
-/* Loading state */
-.loading {
-  text-align: center;
-  padding: 2rem;
-  color: var(--gray-dark);
-}
-
-.loading::after {
-  content: '';
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--gray-medium);
-  border-top-color: var(--optimistic-blue);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-left: 0.5rem;
-  vertical-align: middle;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Responsive adjustments */
-@media (max-width: 600px) {
-  .header-title {
-    font-size: 1.25rem;
-  }
-
-  .search-input-wrapper {
-    flex-direction: column;
-  }
-
-  .search-btn {
-    width: 100%;
-  }
-
-  .results-table-header {
-    grid-template-columns: 1fr 36px;
-    font-size: 0.5rem;
-  }
-
-  .results-table-header span:nth-child(2),
-  .results-table-header span:nth-child(3) {
-    display: none;
-  }
-
-  .street-row {
-    grid-template-columns: 1fr 36px;
-    gap: 0.25rem 0.5rem;
-    padding: 0.75rem 1rem;
-  }
-
-  .street-row-info {
-    grid-column: 1;
-  }
-
-  .street-row-side {
-    display: none;
-  }
-
-  .street-row-schedule {
-    display: none;
-  }
-
-  .street-row-status {
-    display: none;
-  }
-
-  .street-row-notify {
-    display: none;
-  }
-
-  .street-row-name::after {
-    content: attr(data-side);
-    font-weight: 400;
-    font-size: 0.75rem;
-    color: var(--gray-dark);
-    margin-left: 0.5rem;
-  }
-
-  /* Saved table mobile */
-  .saved-table .results-table-header.saved-header {
-    grid-template-columns: 1fr 36px;
-  }
-
-  .saved-table .results-table-header.saved-header span:nth-child(2),
-  .saved-table .results-table-header.saved-header span:nth-child(3) {
-    display: none;
-  }
-
-  .saved-table .street-row {
-    grid-template-columns: 1fr 36px;
-  }
-
-  .notification-prefs-methods {
-    flex-direction: column;
-  }
-
-  .notify-footer-content {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-  }
-
-  .notify-footer-count {
-    justify-content: space-between;
-  }
-
-  .notify-footer-actions button {
-    flex: 1;
-  }
-
-  .pagination-container {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .pagination-controls {
-    justify-content: center;
-  }
-
-  .page-size-selector {
-    justify-content: center;
-  }
-
-  .bulk-actions {
-    flex-direction: column;
-    gap: 0.75rem;
-    text-align: center;
-  }
-
-  .demo-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .demo-controls input {
-    width: 100%;
-  }
-}
-
-/* ── Debug filters + CSV export (dev/debug affordances) ─────────────── */
+/* ============================================================ */
+/* Debug filters                                                */
+/* ============================================================ */
 .debug-filters {
   display: flex;
   flex-wrap: wrap;
@@ -1400,19 +412,551 @@ body {
   color: #6b7480;
   font-variant-numeric: tabular-nums;
 }
-.export-csv-btn {
-  font-size: 0.8125rem;
-  padding: 0.625rem 1rem;
-  border: 1px solid #1871bf;
+
+/* ============================================================ */
+/* Results                                                      */
+/* ============================================================ */
+.results-container,
+.saved-streets-container {
+  min-height: 200px;
+}
+
+.results-placeholder {
+  text-align: center;
+  color: var(--gray-dark);
+  padding: 2rem;
+  font-style: italic;
+}
+
+.results-count {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-dark);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.results-table {
+  background-color: var(--white);
   border-radius: 4px;
-  background: #fff;
-  color: #1871bf;
-  font-family: "Montserrat", sans-serif;
-  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.results-table-header {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr 70px;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--charles-blue);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.results-table-header span {
+  text-align: center;
+}
+.results-table-header span:first-child {
+  text-align: left;
+}
+
+.street-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr 70px;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--gray-light);
+  align-items: center;
+  transition: background-color 0.15s ease;
+}
+.street-row:hover {
+  background-color: var(--gray-light);
+}
+.street-row:last-child {
+  border-bottom: none;
+}
+
+.street-row-alert-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.street-row-alert-cell input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
   cursor: pointer;
+  accent-color: var(--optimistic-blue);
+}
+.street-row-alert-cell.checkbox-locked input[type="checkbox"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.street-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.street-row-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--charles-blue);
+}
+.street-row-segment {
+  font-size: 0.8125rem;
+  color: var(--gray-dark);
+}
+.street-row-side {
+  font-size: 0.8125rem;
+  text-align: center;
+  color: var(--gray-dark);
+}
+.street-row-schedule {
+  font-size: 0.8125rem;
+  color: var(--gray-dark);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.schedule-text {
+  color: var(--gray-dark);
+}
+.next-date,
+.next-date-status {
+  color: var(--optimistic-blue);
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+/* Status badges — styled like usa-tag, colored by urgency. */
+.status-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+  border-radius: 2px;
   white-space: nowrap;
 }
-.export-csv-btn:hover {
-  background: #1871bf;
-  color: #fff;
+.status-badge.safe {
+  background-color: #e8f5e9;
+  color: var(--status-safe);
+}
+.status-badge.warning {
+  background-color: #fff3e0;
+  color: var(--status-warning);
+}
+.status-badge.danger {
+  background-color: #ffebee;
+  color: var(--status-danger);
+}
+
+/* Saved-streets table variants (no Side column). */
+.saved-table .results-table-header.saved-header,
+.saved-table .street-row {
+  grid-template-columns: 1fr 1fr 100px 70px;
+}
+.saved-row.status-danger {
+  background-color: #fff8f8;
+}
+.saved-row.status-warning {
+  background-color: #fffdf8;
+}
+.saved-row.pending-removal {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+/* ============================================================ */
+/* Pagination                                                   */
+/* ============================================================ */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.pagination-info {
+  font-size: 0.8125rem;
+  color: var(--gray-dark);
+}
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pagination-btn {
+  padding: 0.5rem 0.75rem;
+  background-color: var(--white);
+  border: 1px solid var(--gray-medium);
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.pagination-btn:hover:not(:disabled) {
+  background-color: var(--gray-light);
+  border-color: var(--gray-dark);
+}
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pagination-btn.active {
+  background-color: var(--optimistic-blue);
+  border-color: var(--optimistic-blue);
+  color: var(--white);
+}
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--gray-dark);
+}
+.page-size-selector .usa-select {
+  width: auto;
+  margin-top: 0;
+}
+
+/* ============================================================ */
+/* Notification preferences panel                               */
+/* ============================================================ */
+.notification-prefs-panel {
+  background-color: var(--white);
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.notification-prefs-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--charles-blue);
+  margin: 0 0 0.75rem 0;
+  text-transform: uppercase;
+}
+.notification-prefs-methods {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+/* The pref items are usa-checkboxes; the wrapper just gives them a chip frame. */
+.notification-pref-item {
+  padding: 0.5rem 0.75rem;
+  background-color: var(--gray-light);
+  border-radius: 4px;
+}
+.notification-pref-item.active {
+  background-color: #e3f2fd;
+  border: 1px solid var(--optimistic-blue);
+}
+.notification-pref-item .usa-checkbox__label {
+  margin-top: 0;
+}
+.notification-prefs-save {
+  margin-top: 0.75rem;
+}
+
+/* ============================================================ */
+/* Sticky notification footer                                   */
+/* ============================================================ */
+.notify-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--white);
+  border-top: 1px solid var(--gray-medium);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  padding: 0.75rem 1rem;
+}
+.notify-footer-content {
+  max-width: 40rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0;
+}
+.notify-footer-count {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--charles-blue);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 1.5rem;
+}
+.notify-hint {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--gray-dark);
+}
+.notify-clear-btn.usa-button--unstyled {
+  color: var(--freedom-trail-red);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.notify-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.notify-footer-actions .usa-button {
+  margin-top: 0;
+}
+
+/* ============================================================ */
+/* Sign-up modal (overlay is toggled by app.js; box uses USWDS  */
+/* form controls inside a custom frame)                         */
+/* ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background-color: var(--white);
+  border-radius: 8px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+.modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--gray-dark);
+  cursor: pointer;
+}
+.modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--charles-blue);
+  margin: 0 0 1rem 0;
+}
+.modal-subtitle {
+  font-size: 0.875rem;
+  color: var(--gray-dark);
+  margin: 0 0 1rem 0;
+}
+.modal-options {
+  border: 0;
+  margin: 0 0 1rem 0;
+  padding: 0;
+}
+.modal-input-area {
+  margin-top: 1rem;
+}
+.modal-push-msg {
+  margin-top: 1rem;
+}
+.modal-submit-btn.usa-button {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+/* ============================================================ */
+/* Toast                                                        */
+/* ============================================================ */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--charles-blue);
+  color: var(--white);
+  padding: 0.875rem 1.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 3000;
+  animation: toast-fade 4s ease-in-out;
+  max-width: 90%;
+  text-align: center;
+}
+@keyframes toast-fade {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+}
+
+/* ============================================================ */
+/* Demo panel                                                   */
+/* ============================================================ */
+.demo-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--charles-blue);
+  color: var(--white);
+  padding: 1rem;
+  z-index: 1000;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+}
+.demo-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+.demo-close {
+  background: none;
+  border: none;
+  color: var(--white);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+.demo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.demo-controls .usa-label {
+  color: var(--white);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  margin-top: 0;
+}
+.demo-controls .usa-input {
+  margin-top: 0;
+  width: auto;
+}
+.demo-controls .usa-button {
+  margin-top: 0;
+}
+
+/* ============================================================ */
+/* Misc                                                         */
+/* ============================================================ */
+.empty-state {
+  text-align: center;
+  color: var(--gray-dark);
+  padding: 3rem 1rem;
+  font-style: italic;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--gray-dark);
+}
+.loading::after {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--gray-medium);
+  border-top-color: var(--optimistic-blue);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================ */
+/* Responsive (mobile-first collapses)                          */
+/* ============================================================ */
+@media (max-width: 600px) {
+  .search-input-wrapper {
+    flex-direction: column;
+  }
+  .search-input-wrapper .search-btn {
+    width: 100%;
+  }
+
+  .results-table-header {
+    grid-template-columns: 1fr 36px;
+    font-size: 0.5rem;
+  }
+  .results-table-header span:nth-child(2),
+  .results-table-header span:nth-child(3) {
+    display: none;
+  }
+
+  .street-row {
+    grid-template-columns: 1fr 36px;
+    gap: 0.25rem 0.5rem;
+  }
+  .street-row-side,
+  .street-row-schedule,
+  .street-row-status {
+    display: none;
+  }
+  .street-row-name::after {
+    content: attr(data-side);
+    font-weight: 400;
+    font-size: 0.75rem;
+    color: var(--gray-dark);
+    margin-left: 0.5rem;
+  }
+
+  .saved-table .results-table-header.saved-header,
+  .saved-table .street-row {
+    grid-template-columns: 1fr 36px;
+  }
+  .saved-table .results-table-header.saved-header span:nth-child(2),
+  .saved-table .results-table-header.saved-header span:nth-child(3) {
+    display: none;
+  }
+
+  .notification-prefs-methods {
+    flex-direction: column;
+  }
+
+  .notify-footer-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .notify-footer-count {
+    justify-content: space-between;
+  }
+  .notify-footer-actions button {
+    flex: 1;
+  }
+
+  .pagination-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pagination-controls,
+  .page-size-selector {
+    justify-content: center;
+  }
+
+  .demo-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .demo-controls .usa-input {
+    width: 100%;
+  }
 }
